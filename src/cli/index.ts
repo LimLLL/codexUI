@@ -259,6 +259,11 @@ function resolvePassword(input: string | boolean): string | undefined {
   if (typeof input === 'string') {
     return input
   }
+  // Allow setting password via environment variable
+  const envPassword = process.env.CODEXUI_PASSWORD?.trim()
+  if (envPassword) {
+    return envPassword
+  }
   return generatePassword()
 }
 
