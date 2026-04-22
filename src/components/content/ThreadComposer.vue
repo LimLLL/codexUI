@@ -255,6 +255,16 @@
             @update:model-value="onModelSelect"
           />
 
+          <ComposerDropdown
+            class="thread-composer-control"
+            :model-value="selectedReasoningEffort"
+            :options="reasoningOptions"
+            placeholder="Thinking"
+            open-direction="up"
+            :disabled="disabled || !activeThreadId || isTurnInProgress"
+            @update:model-value="onReasoningEffortSelect"
+          />
+
           <ComposerSearchDropdown
             class="thread-composer-control"
             :options="skillDropdownOptions"
@@ -264,16 +274,6 @@
             open-direction="up"
             :disabled="disabled || !activeThreadId || isTurnInProgress"
             @toggle="onSkillDropdownToggle"
-          />
-
-          <ComposerDropdown
-            class="thread-composer-control"
-            :model-value="selectedReasoningEffort"
-            :options="reasoningOptions"
-            placeholder="Thinking"
-            open-direction="up"
-            :disabled="disabled || !activeThreadId || isTurnInProgress"
-            @update:model-value="onReasoningEffortSelect"
           />
         </template>
 

@@ -412,6 +412,10 @@
                   </button>
                 </div>
               </div>
+              <button class="sidebar-settings-row" type="button" @click="isConfigEditorOpen = true">
+                <span class="sidebar-settings-label">{{ $t('settings.configEditor') }}</span>
+                <span class="sidebar-settings-value">config.toml</span>
+              </button>
               <div
                 v-if="showThreadContextBadge"
                 class="sidebar-settings-row sidebar-settings-context-row"
@@ -787,6 +791,7 @@
       </section>
     </template>
   </DesktopLayout>
+  <ConfigEditorModal :visible="isConfigEditorOpen" @close="isConfigEditorOpen = false" />
 </template>
 
 <script setup lang="ts">
@@ -838,6 +843,7 @@ import { getPathLeafName, getPathParent, normalizePathForUi } from './pathUtils.
 const ThreadConversation = defineAsyncComponent(() => import('./components/content/ThreadConversation.vue'))
 const ReviewPane = defineAsyncComponent(() => import('./components/content/ReviewPane.vue'))
 const SkillsHub = defineAsyncComponent(() => import('./components/content/SkillsHub.vue'))
+const ConfigEditorModal = defineAsyncComponent(() => import('./components/content/ConfigEditorModal.vue'))
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codex-web-local.sidebar-collapsed.v1'
 const ACCOUNTS_SECTION_COLLAPSED_STORAGE_KEY = 'codex-web-local.accounts-section-collapsed.v1'
@@ -1126,6 +1132,7 @@ const customEndpointWireApi = ref<'responses' | 'chat'>('responses')
 const openRouterWireApi = ref<'responses' | 'chat'>('responses')
 const opencodeZenKey = ref('')
 const isTelegramConfigOpen = ref(false)
+const isConfigEditorOpen = ref(false)
 const telegramBotTokenDraft = ref('')
 const telegramAllowedUserIdsDraft = ref('')
 const telegramConfigError = ref('')

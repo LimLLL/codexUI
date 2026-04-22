@@ -450,6 +450,9 @@ const zh = {
     apiKey: 'API 密钥',
     save: '保存',
     saving: '保存中\u2026',
+    configEditor: '配置编辑器',
+    configSaved: '配置保存成功',
+    configSaveError: '保存配置失败',
   },
 }
 

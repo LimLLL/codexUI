@@ -1355,3 +1355,40 @@
     font-size: 16px !important;
   }
 }
+
+/* Config editor modal dark mode */
+:root.dark .cem-panel {
+  @apply bg-zinc-900 border-zinc-700;
+}
+
+:root.dark .cem-header {
+  @apply border-zinc-700;
+}
+
+:root.dark .cem-title {
+  @apply text-zinc-100;
+}
+
+:root.dark .cem-close {
+  @apply text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200;
+}
+
+:root.dark .cem-filepath {
+  @apply text-zinc-500;
+}
+
+:root.dark .cem-textarea {
+  @apply border-zinc-700 bg-zinc-950 text-zinc-100 focus:border-zinc-500;
+}
+
+:root.dark .cem-footer {
+  @apply border-zinc-700;
+}
+
+:root.dark .cem-btn-primary {
+  @apply bg-zinc-100 text-zinc-900 hover:bg-white;
+}
+
+:root.dark .cem-btn-secondary {
+  @apply bg-zinc-800 text-zinc-300 hover:bg-zinc-700;
+}

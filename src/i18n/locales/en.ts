@@ -451,6 +451,9 @@ const en = {
     apiKey: 'API key',
     save: 'Save',
     saving: 'Saving\u2026',
+    configEditor: 'Config Editor',
+    configSaved: 'Config saved successfully',
+    configSaveError: 'Failed to save config',
   },
 }
 
