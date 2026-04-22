@@ -26,6 +26,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -47,6 +48,8 @@ const emit = defineEmits<{
   hide: []
 }>()
 
+const { t } = useI18n()
+
 const terminalHostRef = ref<HTMLElement | null>(null)
 const sessionId = ref('')
 const shellLabel = ref('terminal')
@@ -66,7 +69,7 @@ const terminalStatus = computed(() => {
 
 const terminalTitle = computed(() => {
   if (shellLabel.value && shellLabel.value !== 'terminal') return shellLabel.value
-  return 'Terminal'
+  return t('terminal.title')
 })
 
 onMounted(() => {
@@ -184,7 +187,7 @@ function handleNotification(notification: RpcNotification): void {
   if (notification.method === 'terminal-exit') {
     isAttached.value = false
     terminal.writeln('')
-    terminal.writeln('[terminal exited]')
+    terminal.writeln(t('terminal.exited'))
     return
   }
   if (notification.method === 'terminal-error') {

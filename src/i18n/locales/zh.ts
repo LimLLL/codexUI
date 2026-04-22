@@ -458,6 +458,30 @@ const zh = {
     configSaveError: '保存配置失败',
   },
 
+  terminal: {
+    title: '终端',
+    toggle: '切换终端 ({shortcut})',
+    toggleLabel: '切换终端',
+    exited: '[终端已退出]',
+    newSession: '新会话',
+  },
+
+  context: {
+    label: '上下文',
+    awaitingData: '等待数据',
+    updatesAfter: '将在下次 token 使用事件后更新',
+    waitingEvents: '正在等待此会话的 Codex token 使用更新事件。',
+    tokensLeft: '{count} 剩余',
+    tokensUsed: '{count} 已用',
+    usedOfTotal: '{used} 已用 / {total}',
+    windowUnavailable: '窗口大小不可用',
+    modelContextWindow: '模型上下文窗口：{count} tokens',
+    currentUsage: '当前上下文用量：{count} tokens',
+    cumulativeUsage: '会话累计用量：{count} tokens',
+    remainingContext: '剩余上下文：{count} tokens',
+    windowUnavailableTooltip: '最新使用事件中无法获取模型上下文窗口大小。',
+  },
+
   filePreview: {
     preview: '预览',
     unsupported: '此文件类型暂不支持预览。',

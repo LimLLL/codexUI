@@ -432,7 +432,7 @@
                 :data-state="threadContextBadgeState"
                 :title="threadContextTooltip"
               >
-                <span class="sidebar-settings-label">Context</span>
+                <span class="sidebar-settings-label">{{ $t('context.label') }}</span>
                 <span class="sidebar-settings-context-value" :data-state="threadContextBadgeState">
                   {{ threadContextPrimaryText }}
                   <span class="sidebar-settings-context-meta">{{ threadContextSecondaryText }}</span>
@@ -481,8 +481,8 @@
               class="content-header-terminal-toggle"
               type="button"
               :aria-pressed="selectedThreadTerminalOpen"
-              :title="`Toggle terminal (${terminalShortcutLabel})`"
-              aria-label="Toggle terminal"
+              :title="$t('terminal.toggle', { shortcut: terminalShortcutLabel })"
+              :aria-label="$t('terminal.toggleLabel')"
               @click="toggleSelectedThreadTerminal"
             >
               <IconTablerTerminal class="content-header-terminal-toggle-icon" />
@@ -1291,19 +1291,19 @@ function formatCompactTokenCount(value: number): string {
 
 function buildThreadContextTooltip(usage: UiThreadTokenUsage | null): string {
   if (!usage) {
-    return 'Waiting for Codex thread/tokenUsage/updated events for this thread.'
+    return t('context.waitingEvents')
   }
 
   const lines = [
-    `Current context usage: ${usage.currentContextTokens.toLocaleString()} tokens`,
-    `Cumulative thread usage: ${usage.total.totalTokens.toLocaleString()} tokens`,
+    t('context.currentUsage', { count: usage.currentContextTokens.toLocaleString() }),
+    t('context.cumulativeUsage', { count: usage.total.totalTokens.toLocaleString() }),
   ]
 
   if (typeof usage.modelContextWindow === 'number') {
-    lines.unshift(`Model context window: ${usage.modelContextWindow.toLocaleString()} tokens`)
-    lines.push(`Remaining context: ${(usage.remainingContextTokens ?? 0).toLocaleString()} tokens`)
+    lines.unshift(t('context.modelContextWindow', { count: usage.modelContextWindow.toLocaleString() }))
+    lines.push(t('context.remainingContext', { count: (usage.remainingContextTokens ?? 0).toLocaleString() }))
   } else {
-    lines.push('Model context window is unavailable in the latest usage event.')
+    lines.push(t('context.windowUnavailableTooltip'))
   }
 
   return lines.join('\n')
@@ -1319,20 +1319,20 @@ const threadContextBadgeState = computed(() => {
 
 const threadContextPrimaryText = computed(() => {
   const usage = selectedThreadTokenUsage.value
-  if (!usage) return 'Awaiting data'
+  if (!usage) return t('context.awaitingData')
   if (typeof usage.remainingContextTokens === 'number') {
-    return `${formatCompactTokenCount(usage.remainingContextTokens)} left`
+    return t('context.tokensLeft', { count: formatCompactTokenCount(usage.remainingContextTokens) })
   }
-  return `${formatCompactTokenCount(usage.currentContextTokens)} used`
+  return t('context.tokensUsed', { count: formatCompactTokenCount(usage.currentContextTokens) })
 })
 
 const threadContextSecondaryText = computed(() => {
   const usage = selectedThreadTokenUsage.value
-  if (!usage) return 'Updates after the next token usage event'
+  if (!usage) return t('context.updatesAfter')
   if (typeof usage.modelContextWindow === 'number') {
-    return `${formatCompactTokenCount(usage.currentContextTokens)} used / ${formatCompactTokenCount(usage.modelContextWindow)}`
+    return t('context.usedOfTotal', { used: formatCompactTokenCount(usage.currentContextTokens), total: formatCompactTokenCount(usage.modelContextWindow) })
   }
-  return 'Window size unavailable'
+  return t('context.windowUnavailable')
 })
 
 const threadContextTooltip = computed(() => buildThreadContextTooltip(selectedThreadTokenUsage.value))
@@ -3491,7 +3491,7 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
 }
 
 .content-header-terminal-toggle-icon {
-  @apply h-4 w-4;
+  @apply h-3.5 w-3.5;
 }
 
 .content-header-terminal-shortcut {

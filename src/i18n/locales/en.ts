@@ -459,6 +459,30 @@ const en = {
     configSaveError: 'Failed to save config',
   },
 
+  terminal: {
+    title: 'Terminal',
+    toggle: 'Toggle terminal ({shortcut})',
+    toggleLabel: 'Toggle terminal',
+    exited: '[terminal exited]',
+    newSession: 'New session',
+  },
+
+  context: {
+    label: 'Context',
+    awaitingData: 'Awaiting data',
+    updatesAfter: 'Updates after the next token usage event',
+    waitingEvents: 'Waiting for Codex thread/tokenUsage/updated events for this thread.',
+    tokensLeft: '{count} left',
+    tokensUsed: '{count} used',
+    usedOfTotal: '{used} used / {total}',
+    windowUnavailable: 'Window size unavailable',
+    modelContextWindow: 'Model context window: {count} tokens',
+    currentUsage: 'Current context usage: {count} tokens',
+    cumulativeUsage: 'Cumulative thread usage: {count} tokens',
+    remainingContext: 'Remaining context: {count} tokens',
+    windowUnavailableTooltip: 'Model context window is unavailable in the latest usage event.',
+  },
+
   filePreview: {
     preview: 'Preview',
     unsupported: 'Preview is not available for this file type.',
