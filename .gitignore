@@ -6,7 +6,6 @@ output/
 *.tsbuildinfo
 
 package-lock.json
-pnpm-lock.yaml
 .codex/
 .env.local
 
