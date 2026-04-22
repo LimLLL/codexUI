@@ -1520,6 +1520,9 @@ function onInputKeydown(event: KeyboardEvent): void {
     }
   }
 
+  // Ignore Enter during IME composition (e.g. Chinese pinyin confirming characters)
+  if (event.isComposing || event.keyCode === 229) return
+
   const shouldSend = props.sendWithEnter !== false
     ? event.key === 'Enter' && !event.shiftKey
     : event.key === 'Enter' && (event.metaKey || event.ctrlKey)
