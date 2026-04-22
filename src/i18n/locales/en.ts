@@ -459,6 +459,14 @@ const en = {
     configSaveError: 'Failed to save config',
   },
 
+  filePreview: {
+    preview: 'Preview',
+    unsupported: 'Preview is not available for this file type.',
+    truncated: 'File is too large — showing first 1 MB only.',
+    loadFailed: 'Failed to load file preview.',
+    officeNotInstalled: 'OfficeCLI is not installed. Office file preview requires OfficeCLI.',
+  },
+
   fileManager: {
     title: 'Files',
     goUp: 'Go up one level',

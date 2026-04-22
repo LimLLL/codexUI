@@ -458,6 +458,14 @@ const zh = {
     configSaveError: '保存配置失败',
   },
 
+  filePreview: {
+    preview: '预览',
+    unsupported: '此文件类型暂不支持预览。',
+    truncated: '文件过大，仅显示前 1 MB 内容。',
+    loadFailed: '加载文件预览失败。',
+    officeNotInstalled: '未安装 OfficeCLI。预览 Office 文件需要安装 OfficeCLI。',
+  },
+
   fileManager: {
     title: '文件',
     goUp: '返回上级目录',

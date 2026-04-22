@@ -89,6 +89,9 @@
         :style="contextMenuStyle"
         @click.stop
       >
+        <button v-if="!contextMenu.entry.isDirectory" class="fm-context-item" type="button" @click="previewFromContext(contextMenu.entry)">
+          {{ $t('filePreview.preview') }}
+        </button>
         <button v-if="!contextMenu.entry.isDirectory" class="fm-context-item" type="button" @click="downloadEntry(contextMenu.entry)">
           {{ $t('fileManager.download') }}
         </button>
@@ -100,6 +103,13 @@
         </button>
       </div>
     </Teleport>
+
+    <!-- File preview modal -->
+    <FilePreviewModal
+      v-if="previewEntry"
+      :entry="previewEntry"
+      @close="previewEntry = null"
+    />
 
     <!-- Hidden upload inputs -->
     <input
@@ -146,6 +156,7 @@ import {
   IconFileZip,
 } from '@tabler/icons-vue'
 import IconTablerChevronLeft from '../icons/IconTablerChevronLeft.vue'
+import FilePreviewModal from './FilePreviewModal.vue'
 
 type FileEntry = {
   name: string
@@ -204,6 +215,7 @@ const contextMenuRef = ref<HTMLElement | null>(null)
 const contextMenuStyle = ref<Record<string, string>>({})
 const uploadInputRef = ref<HTMLInputElement | null>(null)
 const folderUploadInputRef = ref<HTMLInputElement | null>(null)
+const previewEntry = ref<FileEntry | null>(null)
 
 /** Detect platform path separator from a server-returned path. */
 function detectSep(p: string): string {
@@ -289,6 +301,8 @@ function onEntryClick(entry: FileEntry): void {
 function onEntryDblClick(entry: FileEntry): void {
   if (entry.isDirectory) {
     void fetchEntries(entry.path)
+  } else {
+    previewEntry.value = entry
   }
 }
 
@@ -405,6 +419,12 @@ async function deleteEntry(entry: FileEntry): Promise<void> {
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('fileManager.deleteError')
   }
+}
+
+// --- Preview from context menu ---
+function previewFromContext(entry: FileEntry): void {
+  closeContextMenu()
+  previewEntry.value = entry
 }
 
 // --- Download ---

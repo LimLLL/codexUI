@@ -1,9 +1,9 @@
 /**
  * File management API routes.
- * Provides list, create, delete, move, download, and upload operations
+ * Provides list, create, delete, move, download, upload, read, and office preview operations
  * for files and directories within an arbitrary workspace path.
  */
-import { mkdir, readdir, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, open as fsOpen, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { basename, dirname, extname, isAbsolute, join, normalize, resolve } from 'node:path'
 import { homedir } from 'node:os'
@@ -78,6 +78,7 @@ type FileEntry = {
   mtimeMs: number
   extension: string
 }
+
 
 /**
  * Handles file management routes.
@@ -243,6 +244,131 @@ export async function handleFileRoutes(
       })
     } catch {
       setJson(res, 404, { error: 'File not found.' })
+    }
+    return true
+  }
+
+  // --- READ file content as text (read-only, no workspace restriction) ---
+  if (req.method === 'GET' && url.pathname === '/codex-api/files/read') {
+    const filePath = url.searchParams.get('path') ?? ''
+    if (!filePath || !isAbsolute(filePath)) {
+      setJson(res, 400, { error: 'Expected absolute file path.' })
+      return true
+    }
+    try {
+      const fileStat = await stat(filePath)
+      if (!fileStat.isFile()) {
+        setJson(res, 400, { error: 'Path is not a file.' })
+        return true
+      }
+      const maxSize = 1024 * 1024 // 1 MB
+      if (fileStat.size > maxSize) {
+        const fh = await fsOpen(filePath, 'r')
+        try {
+          const buffer = Buffer.alloc(maxSize)
+          const { bytesRead } = await fh.read(buffer, 0, maxSize, 0)
+          setJson(res, 200, { content: buffer.subarray(0, bytesRead).toString('utf8'), truncated: true, size: fileStat.size })
+        } finally {
+          await fh.close()
+        }
+      } else {
+        const content = await readFile(filePath, 'utf8')
+        setJson(res, 200, { content, truncated: false, size: fileStat.size })
+      }
+    } catch {
+      setJson(res, 404, { error: 'File not found.' })
+    }
+    return true
+  }
+
+  // --- SERVE file inline for preview (read-only, no workspace restriction) ---
+  // Like download but sets Content-Type and no Content-Disposition, so browsers render inline.
+  if (req.method === 'GET' && url.pathname === '/codex-api/files/serve') {
+    const filePath = url.searchParams.get('path') ?? ''
+    if (!filePath || !isAbsolute(filePath)) {
+      setJson(res, 400, { error: 'Expected absolute file path.' })
+      return true
+    }
+    try {
+      const fileStat = await stat(filePath)
+      if (!fileStat.isFile()) {
+        setJson(res, 400, { error: 'Path is not a file.' })
+        return true
+      }
+      const ext = extname(filePath).toLowerCase()
+      const mimeMap: Record<string, string> = {
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+        '.svg': 'image/svg+xml', '.webp': 'image/webp', '.bmp': 'image/bmp', '.ico': 'image/x-icon', '.avif': 'image/avif',
+        '.pdf': 'application/pdf',
+        '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
+        '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.aac': 'audio/aac', '.flac': 'audio/flac', '.m4a': 'audio/mp4',
+      }
+      const contentType = mimeMap[ext] || 'application/octet-stream'
+      res.statusCode = 200
+      res.setHeader('Content-Type', contentType)
+      res.setHeader('Content-Length', fileStat.size)
+      const { createReadStream } = await import('node:fs')
+      const stream = createReadStream(filePath)
+      stream.pipe(res)
+      stream.on('error', () => {
+        if (!res.headersSent) setJson(res, 500, { error: 'Read error.' })
+        else res.end()
+      })
+    } catch {
+      setJson(res, 404, { error: 'File not found.' })
+    }
+    return true
+  }
+
+  // --- OFFICE file preview via OfficeCLI (read-only, no workspace restriction) ---
+  // Uses `view html` → reads the temp file officecli creates.
+  if (req.method === 'GET' && url.pathname === '/codex-api/files/office-preview') {
+    const filePath = url.searchParams.get('path') ?? ''
+    if (!filePath || !isAbsolute(filePath)) {
+      setJson(res, 400, { error: 'Expected absolute file path.' })
+      return true
+    }
+    try {
+      const fileStat = await stat(filePath)
+      if (!fileStat.isFile()) {
+        setJson(res, 400, { error: 'Path is not a file.' })
+        return true
+      }
+      const ext = extname(filePath).toLowerCase()
+      if (!['.docx', '.xlsx', '.pptx'].includes(ext)) {
+        setJson(res, 400, { error: 'Only .docx, .xlsx, .pptx files are supported for preview.' })
+        return true
+      }
+      const { execFile: execFileCb } = await import('node:child_process')
+      const { promisify } = await import('node:util')
+      const execFileAsync = promisify(execFileCb)
+      const officecliPath = process.env.OFFICECLI_PATH || 'officecli'
+
+      // `view html` outputs the temp file path to stdout
+      const { stdout } = await execFileAsync(officecliPath, ['view', filePath, 'html'], {
+        timeout: 30_000, maxBuffer: 10 * 1024 * 1024,
+      })
+      let html: string
+      const trimmed = stdout.trim()
+      if (trimmed.endsWith('.html')) {
+        html = await readFile(trimmed, 'utf8')
+        rm(trimmed, { force: true }).catch(() => {})
+      } else if (trimmed.startsWith('<!') || trimmed.startsWith('<html')) {
+        html = trimmed
+      } else {
+        throw new Error('Unexpected officecli output')
+      }
+
+      res.statusCode = 200
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.end(html)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Preview generation failed.'
+      if (msg.includes('ENOENT')) {
+        setJson(res, 500, { error: 'officecli not found. Set OFFICECLI_PATH or install: https://github.com/iOfficeAI/OfficeCLI' })
+      } else {
+        setJson(res, 500, { error: msg })
+      }
     }
     return true
   }

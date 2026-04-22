@@ -1479,3 +1479,81 @@
 :root.dark .fmp-close {
   @apply border-zinc-600 bg-zinc-800 text-zinc-400 hover:bg-zinc-700;
 }
+
+/* ── File Preview Modal (dark) ── */
+:root.dark .fp-overlay {
+  @apply bg-black/60;
+}
+
+:root.dark .fp-modal {
+  @apply bg-zinc-900 border border-zinc-700;
+}
+
+:root.dark .fp-header {
+  @apply border-zinc-700;
+}
+
+:root.dark .fp-filename {
+  @apply text-zinc-100;
+}
+
+:root.dark .fp-size {
+  @apply text-zinc-500;
+}
+
+:root.dark .fp-action-btn {
+  @apply border-zinc-600 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200;
+}
+
+:root.dark .fp-error {
+  @apply text-rose-400;
+}
+
+:root.dark .fp-code {
+  @apply bg-zinc-950;
+}
+
+:root.dark .fp-code .hljs { color: #e6edf3; }
+:root.dark .fp-code .hljs-keyword { color: #ff7b72; }
+:root.dark .fp-code .hljs-string { color: #a5d6ff; }
+:root.dark .fp-code .hljs-number { color: #79c0ff; }
+:root.dark .fp-code .hljs-comment { color: #8b949e; }
+:root.dark .fp-code .hljs-title { color: #d2a8ff; }
+:root.dark .fp-code .hljs-built_in { color: #ffa657; }
+:root.dark .fp-code .hljs-literal { color: #79c0ff; }
+:root.dark .fp-code .hljs-type { color: #ff7b72; }
+:root.dark .fp-code .hljs-attr { color: #79c0ff; }
+:root.dark .fp-code .hljs-tag { color: #7ee787; }
+:root.dark .fp-code .hljs-name { color: #7ee787; }
+:root.dark .fp-code .hljs-attribute { color: #79c0ff; }
+:root.dark .fp-code .hljs-selector-tag { color: #ff7b72; }
+:root.dark .fp-code .hljs-selector-class { color: #d2a8ff; }
+:root.dark .fp-code .hljs-variable { color: #ffa657; }
+:root.dark .fp-code .hljs-meta { color: #79c0ff; }
+:root.dark .fp-code .hljs-addition { color: #aff5b4; background: rgba(46,160,67,0.15); }
+:root.dark .fp-code .hljs-deletion { color: #ffdcd7; background: rgba(248,81,73,0.15); }
+
+:root.dark .fp-text {
+  @apply bg-zinc-950 text-zinc-300;
+}
+
+:root.dark .fp-markdown {
+  @apply text-zinc-200;
+}
+
+:root.dark .fp-markdown h1 { @apply border-zinc-700; }
+:root.dark .fp-markdown a { @apply text-blue-400; }
+:root.dark .fp-markdown code { @apply bg-zinc-800; }
+:root.dark .fp-markdown pre { @apply bg-zinc-800; }
+:root.dark .fp-markdown blockquote { @apply border-zinc-600 text-zinc-400; }
+:root.dark .fp-markdown th { @apply bg-zinc-800; }
+:root.dark .fp-markdown th, :root.dark .fp-markdown td { @apply border-zinc-700; }
+:root.dark .fp-markdown hr { @apply border-zinc-700; }
+
+:root.dark .fp-truncated {
+  @apply bg-amber-950 text-amber-400 border-amber-800;
+}
+
+:root.dark .fp-media {
+  @apply bg-zinc-950;
+}
