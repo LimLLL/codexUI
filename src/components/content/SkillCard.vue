@@ -18,8 +18,8 @@
       <div class="skill-card-info">
         <div class="skill-card-header">
           <span class="skill-card-name">{{ skill.displayName || skill.name }}</span>
-          <span v-if="skill.installed && skill.enabled === false" class="skill-card-badge-disabled">Disabled</span>
-          <span v-else-if="skill.installed" class="skill-card-badge">Installed</span>
+          <span v-if="skill.installed && skill.enabled === false" class="skill-card-badge-disabled">{{ $t('skills.disabled') }}</span>
+          <span v-else-if="skill.installed" class="skill-card-badge">{{ $t('skills.installed') }}</span>
         </div>
         <span class="skill-card-owner">{{ skill.owner }}</span>
       </div>
@@ -27,7 +27,7 @@
         v-if="skill.installed && skillDirPath"
         class="skill-card-browse"
         type="button"
-        title="Browse files"
+        :title="$t('skills.browseFiles')"
         @click.stop="onBrowse"
       >
         <IconTablerFolder class="skill-card-browse-icon" />

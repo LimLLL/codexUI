@@ -29,13 +29,13 @@
               <span class="thread-row-title-wrap">
                 <span class="thread-row-title-line">
                   <span class="thread-row-title">{{ thread.title }}</span>
-                  <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" title="Worktree thread" />
+                  <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" :title="$t('home.worktreeThread')" />
                   <span
                     v-if="threadHasAutomation(thread.id)"
                     class="thread-row-automation-chip"
                     :title="threadAutomationTooltip(thread.id)"
                   >
-                    Auto
+                    {{ $t('home.auto') }}
                   </span>
                   <span
                     v-if="thread.pendingRequestState"
@@ -68,29 +68,29 @@
     </section>
 
     <SidebarMenuRow as="header" class="thread-tree-header-row">
-      <span class="thread-tree-header">Threads</span>
+      <span class="thread-tree-header">{{ $t('home.threads') }}</span>
       <template #right>
         <div ref="organizeMenuWrapRef" class="organize-menu-wrap">
           <button
             class="organize-menu-trigger"
             type="button"
             :aria-expanded="isOrganizeMenuOpen"
-            aria-label="Organize threads"
-            title="Organize threads"
+            :aria-label="$t('home.organizeThreads')"
+            :title="$t('home.organizeThreads')"
             @click="toggleOrganizeMenu"
           >
             <IconTablerDots class="thread-icon" />
           </button>
 
           <div v-if="isOrganizeMenuOpen" class="organize-menu-panel" @click.stop>
-            <p class="organize-menu-title">Organize</p>
+            <p class="organize-menu-title">{{ $t('home.organize') }}</p>
             <button
               class="organize-menu-item"
               :data-active="threadViewMode === 'project'"
               type="button"
               @click="setThreadViewMode('project')"
             >
-              <span>By project</span>
+              <span>{{ $t('home.byProject') }}</span>
               <span v-if="threadViewMode === 'project'">✓</span>
             </button>
             <button
@@ -99,7 +99,7 @@
               type="button"
               @click="setThreadViewMode('chronological')"
             >
-              <span>Chronological list</span>
+              <span>{{ $t('home.chronologicalList') }}</span>
               <span v-if="threadViewMode === 'chronological'">✓</span>
             </button>
           </div>
@@ -107,9 +107,9 @@
       </template>
     </SidebarMenuRow>
 
-    <p v-if="isSearchActive && filteredGroups.length === 0" class="thread-tree-no-results">No matching threads</p>
+    <p v-if="isSearchActive && filteredGroups.length === 0" class="thread-tree-no-results">{{ $t('home.noMatchingThreads') }}</p>
 
-    <p v-else-if="isLoading && groups.length === 0" class="thread-tree-loading">Loading threads...</p>
+    <p v-else-if="isLoading && groups.length === 0" class="thread-tree-loading">{{ $t('home.loadingThreads') }}</p>
 
     <ul v-else-if="isChronologicalView" class="thread-list thread-list-global">
       <li
@@ -143,7 +143,7 @@
             <span class="thread-row-title-wrap">
               <span class="thread-row-title-line">
                 <span class="thread-row-title">{{ thread.title }}</span>
-                <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" title="Worktree thread" />
+                <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" :title="$t('home.worktreeThread')" />
                 <span
                   v-if="threadHasAutomation(thread.id)"
                   class="thread-row-automation-chip"
@@ -240,18 +240,18 @@
                   >
                     <template v-if="projectMenuMode === 'actions'">
                       <button class="project-menu-item" type="button" @click="openRenameProjectMenu(group.projectName)">
-                        Edit name
+                        {{ $t('home.editName') }}
                       </button>
                       <button
                         class="project-menu-item project-menu-item-danger"
                         type="button"
                         @click="onRemoveProject(group.projectName)"
                       >
-                        Remove
+                        {{ $t('home.removeProject') }}
                       </button>
                     </template>
                     <template v-else>
-                      <label class="project-menu-label">Project name</label>
+                      <label class="project-menu-label">{{ $t('home.projectName') }}</label>
                       <input
                         v-model="projectRenameDraft"
                         class="project-menu-input"
@@ -307,7 +307,7 @@
                   <span class="thread-row-title-wrap">
                     <span class="thread-row-title-line">
                       <span class="thread-row-title">{{ thread.title }}</span>
-                      <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" title="Worktree thread" />
+                      <IconTablerGitFork v-if="thread.hasWorktree" class="thread-row-worktree-icon" :title="$t('home.worktreeThread')" />
                       <span
                         v-if="threadHasAutomation(thread.id)"
                         class="thread-row-automation-chip"
@@ -348,7 +348,7 @@
             <template #left>
               <span class="project-empty-spacer" />
             </template>
-            <span class="project-empty">No threads</span>
+            <span class="project-empty">{{ $t('home.noThreads') }}</span>
           </SidebarMenuRow>
 
           <SidebarMenuRow v-if="hasHiddenThreads(group)" class="thread-show-more-row">
@@ -356,7 +356,7 @@
               <span class="thread-show-more-spacer" />
             </template>
             <button class="thread-show-more-button" type="button" @click="toggleProjectExpansion(group.projectName)">
-              {{ isExpanded(group.projectName) ? 'Show less' : 'Show more' }}
+              {{ isExpanded(group.projectName) ? $t('home.showLess') : $t('home.showMore') }}
             </button>
           </SidebarMenuRow>
       </article>
@@ -372,43 +372,43 @@
         @click.stop
       >
         <button class="thread-menu-item" type="button" @click="openAutomationDialog(openThreadMenuThread.id)">
-          {{ threadHasAutomation(openThreadMenuThread.id) ? 'Edit automation…' : 'Add automation…' }}
+          {{ threadHasAutomation(openThreadMenuThread.id) ? $t('home.editAutomation') : $t('home.addAutomation') }}
         </button>
         <button class="thread-menu-item" type="button" @click="onBrowseThreadFiles(openThreadMenuThread.id)">
-          Browse files
+          {{ $t('home.browseFiles') }}
         </button>
         <button class="thread-menu-item" type="button" @click="onExportThread(openThreadMenuThread.id)">
-          Export chat
+          {{ $t('home.exportThread') }}
         </button>
         <button class="thread-menu-item" type="button" @click="onForkThread(openThreadMenuThread.id)">
-          Create chat fork
+          {{ $t('home.fork') }}
         </button>
         <button class="thread-menu-item" type="button" @click="openRenameThreadDialog(openThreadMenuThread.id, openThreadMenuThread.title)">
-          Rename thread
+          {{ $t('home.rename') }}
         </button>
         <button class="thread-menu-item thread-menu-item-danger" type="button" @click="openDeleteThreadDialog(openThreadMenuThread.id, openThreadMenuThread.title)">
-          Delete thread
+          {{ $t('home.deleteThread') }}
         </button>
       </div>
     </Teleport>
 
     <Teleport to="body">
       <div v-if="renameThreadDialogVisible" class="rename-thread-overlay" @click.self="closeRenameThreadDialog">
-        <div class="rename-thread-panel" role="dialog" aria-modal="true" aria-label="Thread title">
-          <h3 class="rename-thread-title">Rename thread</h3>
-          <p class="rename-thread-subtitle">Make it short and recognizable.</p>
+        <div class="rename-thread-panel" role="dialog" aria-modal="true" :aria-label="$t('home.rename')">
+          <h3 class="rename-thread-title">{{ $t('home.rename') }}</h3>
+          <p class="rename-thread-subtitle">{{ $t('home.renameHint') }}</p>
           <input
             ref="renameThreadInputRef"
             v-model="renameThreadDraft"
             class="rename-thread-input"
             type="text"
-            placeholder="Add title..."
+            :placeholder="$t('home.addTitlePlaceholder')"
             @keydown.enter.prevent="submitRenameThread"
             @keydown.esc.prevent="closeRenameThreadDialog"
           />
           <div class="rename-thread-actions">
-            <button class="rename-thread-button" type="button" @click="closeRenameThreadDialog">Cancel</button>
-            <button class="rename-thread-button rename-thread-button-primary" type="button" @click="submitRenameThread">Save</button>
+            <button class="rename-thread-button" type="button" @click="closeRenameThreadDialog">{{ $t('home.cancel') }}</button>
+            <button class="rename-thread-button rename-thread-button-primary" type="button" @click="submitRenameThread">{{ $t('home.save') }}</button>
           </div>
         </div>
       </div>
@@ -416,20 +416,20 @@
 
     <Teleport to="body">
       <div v-if="deleteThreadDialogVisible" class="rename-thread-overlay" @click.self="closeDeleteThreadDialog">
-        <div class="rename-thread-panel" role="dialog" aria-modal="true" aria-label="Delete thread">
-          <h3 class="rename-thread-title">{{ deleteThreadHasAutomation ? 'Archive chat and remove automation?' : 'Delete thread?' }}</h3>
+        <div class="rename-thread-panel" role="dialog" aria-modal="true" :aria-label="$t('home.deleteThread')">
+          <h3 class="rename-thread-title">{{ deleteThreadHasAutomation ? $t('home.archiveAndRemoveAutomationTitle') : $t('home.deleteThreadTitle') }}</h3>
           <p class="rename-thread-subtitle">
             <template v-if="deleteThreadHasAutomation">
-              This will archive the thread "{{ deleteThreadTitle }}" and remove the attached heartbeat automation.
+              {{ $t('home.archiveAndRemoveAutomationDesc', { title: deleteThreadTitle }) }}
             </template>
             <template v-else>
-              This will archive the thread "{{ deleteThreadTitle }}". You can find it later in archived threads.
+              {{ $t('home.deleteThreadDesc', { title: deleteThreadTitle }) }}
             </template>
           </p>
           <div class="rename-thread-actions">
-            <button class="rename-thread-button" type="button" @click="closeDeleteThreadDialog">Cancel</button>
+            <button class="rename-thread-button" type="button" @click="closeDeleteThreadDialog">{{ $t('home.cancel') }}</button>
             <button class="rename-thread-button rename-thread-button-danger" type="button" @click="submitDeleteThread">
-              {{ deleteThreadHasAutomation ? 'Archive and remove' : 'Delete' }}
+              {{ deleteThreadHasAutomation ? $t('home.archiveAndRemove') : $t('home.delete') }}
             </button>
           </div>
         </div>
@@ -438,22 +438,22 @@
 
     <Teleport to="body">
       <div v-if="automationDialogVisible" class="rename-thread-overlay" @click.self="closeAutomationDialog">
-        <div class="rename-thread-panel automation-thread-panel" role="dialog" aria-modal="true" aria-label="Thread automation">
-          <h3 class="rename-thread-title">{{ automationDialogMode === 'edit' ? 'Edit automation' : 'Add automation' }}</h3>
-          <p class="rename-thread-subtitle">This creates a heartbeat automation attached to the selected thread.</p>
+        <div class="rename-thread-panel automation-thread-panel" role="dialog" aria-modal="true" :aria-label="$t('home.threadAutomation')">
+          <h3 class="rename-thread-title">{{ automationDialogMode === 'edit' ? $t('home.editAutomation') : $t('home.addAutomation') }}</h3>
+          <p class="rename-thread-subtitle">{{ $t('home.automationDesc') }}</p>
 
           <label class="automation-thread-field">
-            <span class="automation-thread-label">Name</span>
-            <input v-model="automationDraft.name" class="rename-thread-input" type="text" placeholder="Automation name" />
+            <span class="automation-thread-label">{{ $t('home.automationName') }}</span>
+            <input v-model="automationDraft.name" class="rename-thread-input" type="text" :placeholder="$t('home.automationNamePlaceholder')" />
           </label>
 
           <label class="automation-thread-field">
-            <span class="automation-thread-label">Prompt</span>
-            <textarea v-model="automationDraft.prompt" class="automation-thread-textarea" rows="6" placeholder="Describe what the automation should do"></textarea>
+            <span class="automation-thread-label">{{ $t('home.automationPrompt') }}</span>
+            <textarea v-model="automationDraft.prompt" class="automation-thread-textarea" rows="6" :placeholder="$t('home.automationPromptPlaceholder')"></textarea>
           </label>
 
           <label class="automation-thread-field">
-            <span class="automation-thread-label">Schedule (RRULE)</span>
+            <span class="automation-thread-label">{{ $t('home.automationSchedule') }}</span>
             <input
               v-model="automationDraft.rrule"
               class="rename-thread-input"
@@ -463,10 +463,10 @@
           </label>
 
           <label class="automation-thread-field">
-            <span class="automation-thread-label">Status</span>
+            <span class="automation-thread-label">{{ $t('home.automationStatus') }}</span>
             <select v-model="automationDraft.status" class="automation-thread-select">
-              <option value="ACTIVE">Active</option>
-              <option value="PAUSED">Paused</option>
+              <option value="ACTIVE">{{ $t('home.automationActive') }}</option>
+              <option value="PAUSED">{{ $t('home.automationPaused') }}</option>
             </select>
           </label>
 
@@ -480,13 +480,13 @@
               :disabled="isSavingAutomation"
               @click="onDeleteAutomationFromDialog"
             >
-              Remove
+              {{ $t('home.remove') }}
             </button>
             <button class="rename-thread-button" type="button" :disabled="isSavingAutomation" @click="closeAutomationDialog">
-              Cancel
+              {{ $t('home.cancel') }}
             </button>
             <button class="rename-thread-button rename-thread-button-primary" type="button" :disabled="isSavingAutomation" @click="submitAutomationDialog">
-              {{ isSavingAutomation ? 'Saving…' : 'Save' }}
+              {{ isSavingAutomation ? $t('home.saving') : $t('home.save') }}
             </button>
           </div>
         </div>
@@ -498,6 +498,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   deleteThreadAutomation,
   getPinnedThreadState,
@@ -515,6 +516,8 @@ import IconTablerFolderOpen from '../icons/IconTablerFolderOpen.vue'
 import IconTablerGitFork from '../icons/IconTablerGitFork.vue'
 import IconTablerPin from '../icons/IconTablerPin.vue'
 import SidebarMenuRow from './SidebarMenuRow.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   groups: UiProjectGroup[]
@@ -912,8 +915,8 @@ function threadAutomationTooltip(threadId: string): string {
     ? '-'
     : automation.nextRunAtMs
       ? new Date(automation.nextRunAtMs).toLocaleString()
-      : 'Not scheduled'
-  return `${automation.name} • Next run: ${nextRunLabel}`
+      : t('home.notScheduled')
+  return `${automation.name} • ${t('home.nextRun')}: ${nextRunLabel}`
 }
 
 function onExportThread(threadId: string): void {
@@ -927,7 +930,7 @@ function onForkThread(threadId: string): void {
 }
 
 function getNewThreadButtonAriaLabel(projectName: string): string {
-  return `start new thread ${getProjectDisplayName(projectName)}`
+  return `${t('home.newThread')} ${getProjectDisplayName(projectName)}`
 }
 
 function onStartNewThread(projectName: string): void {
@@ -1039,7 +1042,7 @@ function openAutomationDialog(threadId: string): void {
   automationDialogMode.value = existing ? 'edit' : 'create'
   automationDialogError.value = ''
   automationDraft.value = {
-    name: existing?.name ?? 'Thread automation',
+    name: existing?.name ?? t('home.threadAutomation'),
     prompt: existing?.prompt ?? '',
     rrule: existing?.rrule ?? 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
     status: existing?.status ?? 'ACTIVE',
@@ -1074,7 +1077,7 @@ async function submitAutomationDialog(): Promise<void> {
     }
     closeAutomationDialog()
   } catch (error) {
-    automationDialogError.value = error instanceof Error ? error.message : 'Failed to save automation'
+    automationDialogError.value = error instanceof Error ? error.message : t('home.failedToSaveAutomation')
     isSavingAutomation.value = false
   }
 }
@@ -1091,7 +1094,7 @@ async function onDeleteAutomationFromDialog(): Promise<void> {
     )
     closeAutomationDialog()
   } catch (error) {
-    automationDialogError.value = error instanceof Error ? error.message : 'Failed to remove automation'
+    automationDialogError.value = error instanceof Error ? error.message : t('home.failedToRemoveAutomation')
     isSavingAutomation.value = false
   }
 }
@@ -1729,7 +1732,7 @@ function shouldShowThreadIndicator(thread: UiThread): boolean {
 }
 
 function threadRequestLabel(thread: UiThread): string {
-  return thread.pendingRequestState === 'approval' ? 'Awaiting approval' : 'Awaiting response'
+  return thread.pendingRequestState === 'approval' ? t('home.awaitingApproval') : t('home.awaitingResponse')
 }
 
 function getThreadState(thread: UiThread): 'awaiting-approval' | 'awaiting-response' | 'working' | 'unread' | 'idle' {

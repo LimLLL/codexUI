@@ -50,13 +50,14 @@
           </button>
         </li>
       </ul>
-      <div v-else class="search-dropdown-empty">No results</div>
+      <div v-else class="search-dropdown-empty">{{ $t('common.noResults') }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import IconTablerChevronDown from '../icons/IconTablerChevronDown.vue'
 
 export type SearchDropdownOption = {
@@ -78,6 +79,7 @@ const emit = defineEmits<{
   toggle: [value: string, checked: boolean]
 }>()
 
+const { t } = useI18n()
 const rootRef = ref<HTMLElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 const searchRef = ref<HTMLInputElement | null>(null)
@@ -89,12 +91,12 @@ const openDirection = computed(() => props.openDirection ?? 'down')
 const selected = computed(() => new Set(props.selectedValues))
 
 const displayLabel = computed(() => {
-  if (props.selectedValues.length === 0) return props.placeholder || 'Select...'
+  if (props.selectedValues.length === 0) return props.placeholder || t('composer.selectDefault')
   if (props.selectedValues.length === 1) {
     const opt = props.options.find((o) => o.value === props.selectedValues[0])
-    return opt?.label || props.placeholder || 'Select...'
+    return opt?.label || props.placeholder || t('composer.selectDefault')
   }
-  return `${props.selectedValues.length} selected`
+  return t('composer.nSelected', { count: props.selectedValues.length })
 })
 
 const filtered = computed(() => {

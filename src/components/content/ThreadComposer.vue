@@ -13,7 +13,7 @@
     >
       <div v-if="selectedImages.length > 0" class="thread-composer-attachments">
         <div v-for="image in selectedImages" :key="image.id" class="thread-composer-attachment">
-          <img class="thread-composer-attachment-image" :src="image.url" :alt="image.name || 'Selected image'" />
+          <img class="thread-composer-attachment-image" :src="image.url" :alt="image.name || $t('composer.selectedImage')" />
           <button
             class="thread-composer-attachment-remove"
             type="button"
@@ -83,7 +83,7 @@
         @drop="onInputDrop"
       >
         <div v-if="isDragActive" class="thread-composer-drop-overlay" aria-hidden="true">
-          <span class="thread-composer-drop-overlay-copy">Drop images or files</span>
+          <span class="thread-composer-drop-overlay-copy">{{ $t('composer.dropImagesOrFiles') }}</span>
         </div>
         <div v-if="isFileMentionOpen" class="thread-composer-file-mentions">
           <template v-if="fileMentionSuggestions.length > 0">
@@ -110,7 +110,7 @@
               </span>
             </button>
           </template>
-          <div v-else class="thread-composer-file-mention-empty">No matching files</div>
+          <div v-else class="thread-composer-file-mention-empty">{{ $t('composer.noMatchingFiles') }}</div>
         </div>
         <textarea
           ref="inputRef"
@@ -140,7 +140,7 @@
           <button
             class="thread-composer-attach-trigger"
             type="button"
-            aria-label="Add photos & files"
+            :aria-label="$t('composer.addPhotosFiles')"
             :disabled="isInteractionDisabled"
             @click="toggleAttachMenu"
           >
@@ -154,7 +154,7 @@
               :disabled="isInteractionDisabled"
               @click="triggerPhotoLibrary"
             >
-              Add photos & files
+              {{ $t('composer.addPhotosFiles') }}
             </button>
             <button
               class="thread-composer-attach-item"
@@ -162,7 +162,7 @@
               :disabled="isInteractionDisabled"
               @click="triggerFolderPicker"
             >
-              Add folder
+              {{ $t('composer.addFolder') }}
             </button>
             <button
               class="thread-composer-attach-item"
@@ -170,11 +170,11 @@
               :disabled="isInteractionDisabled"
               @click="triggerCameraCapture"
             >
-              Take photo
+              {{ $t('composer.takePhoto') }}
             </button>
             <div class="thread-composer-attach-separator" />
             <div class="thread-composer-attach-mode">
-              <span class="thread-composer-attach-mode-label">In-progress send</span>
+              <span class="thread-composer-attach-mode-label">{{ $t('composer.inProgressSend') }}</span>
               <div class="thread-composer-attach-mode-buttons">
                 <button
                   class="thread-composer-attach-mode-button"
@@ -183,7 +183,7 @@
                   :disabled="isInteractionDisabled"
                   @click="setActiveInProgressMode('steer')"
                 >
-                  Steer
+                  {{ $t('composer.steer') }}
                 </button>
                 <button
                   class="thread-composer-attach-mode-button"
@@ -192,7 +192,7 @@
                   :disabled="isInteractionDisabled"
                   @click="setActiveInProgressMode('queue')"
                 >
-                  Queue
+                  {{ $t('composer.queue') }}
                 </button>
               </div>
             </div>
@@ -208,7 +208,7 @@
               @click="onToggleSpeedMode"
             >
               <span class="thread-composer-attach-setting-copy">
-                <span class="thread-composer-attach-setting-label">Fast mode</span>
+                <span class="thread-composer-attach-setting-label">{{ $t('composer.fastMode') }}</span>
                 <span class="thread-composer-attach-setting-description">{{ speedModeDescription }}</span>
               </span>
               <span
@@ -230,8 +230,8 @@
               @click="toggleCollaborationMode"
             >
               <span class="thread-composer-attach-setting-copy">
-                <span class="thread-composer-attach-setting-label">Plan mode</span>
-                <span class="thread-composer-attach-setting-description">Agent proposes a plan before acting</span>
+                <span class="thread-composer-attach-setting-label">{{ $t('composer.planMode') }}</span>
+                <span class="thread-composer-attach-setting-description">{{ $t('composer.planModeDesc') }}</span>
               </span>
               <span
                 class="thread-composer-attach-switch"
@@ -315,8 +315,8 @@
             v-if="isTurnInProgress && !hasSubmitContent"
             class="thread-composer-stop"
             type="button"
-            :aria-label="isStopPending ? 'Saving thread before stop is available' : 'Stop'"
-            :title="isStopPending ? 'Saving thread before stop is available' : 'Stop'"
+            :aria-label="isStopPending ? $t('composer.stopPending') : $t('composer.stop')"
+            :title="isStopPending ? $t('composer.stopPending') : $t('composer.stop')"
             :disabled="disabled || !activeThreadId || isInterruptingTurn || isStopPending"
             @click="onInterrupt"
           >
@@ -328,8 +328,8 @@
             class="thread-composer-submit"
             :class="{ 'thread-composer-submit--queue': isTurnInProgress && activeInProgressMode === 'queue' }"
             type="button"
-            :aria-label="isTurnInProgress && activeInProgressMode === 'queue' ? 'Queue message' : 'Send message'"
-            :title="isTurnInProgress ? `Send as ${activeInProgressMode}` : 'Send'"
+            :aria-label="isTurnInProgress && activeInProgressMode === 'queue' ? $t('composer.queueMessage') : $t('composer.sendMessage')"
+            :title="isTurnInProgress ? $t('composer.sendAsMode', { mode: activeInProgressMode }) : $t('common.send')"
             :disabled="!canSubmit"
             @click="onSubmit(isTurnInProgress ? activeInProgressMode : 'steer')"
           >
@@ -371,6 +371,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type {
   CollaborationModeKind,
   CollaborationModeOption,
@@ -474,6 +475,7 @@ type AttachmentBatchStats = {
   failed: number
 }
 
+const { t } = useI18n()
 const CONTEXT_WINDOW_BASELINE_TOKENS = 12000
 const PASTED_TEXT_FILE_THRESHOLD = 2000
 
@@ -510,15 +512,15 @@ const {
   },
   onEmpty: () => {
     dictationFeedback.value = props.dictationClickToToggle
-      ? 'No speech detected. Click again after speaking.'
-      : 'No speech detected. Hold the mic and speak.'
+      ? t('composer.noSpeechClick')
+      : t('composer.noSpeechHold')
   },
   onError: (error) => {
     if (error instanceof DOMException && error.name === 'NotAllowedError') {
-      dictationFeedback.value = 'Microphone access was denied.'
+      dictationFeedback.value = t('composer.micDenied')
       return
     }
-    dictationFeedback.value = error instanceof Error ? error.message : 'Dictation failed.'
+    dictationFeedback.value = error instanceof Error ? error.message : t('composer.dictationFailed')
   },
 })
 const attachMenuRootRef = ref<HTMLElement | null>(null)
@@ -544,14 +546,14 @@ const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.
 const DRAFT_STORAGE_PREFIX = 'codex-web-local.thread-draft.v1.'
 let lastActiveThreadId = ''
 
-const reasoningOptions: Array<{ value: ReasoningEffort; label: string }> = [
-  { value: 'none', label: 'None' },
-  { value: 'minimal', label: 'Minimal' },
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-  { value: 'xhigh', label: 'Extra high' },
-]
+const reasoningOptions = computed<Array<{ value: ReasoningEffort; label: string }>>(() => [
+  { value: 'none', label: t('composer.reasoningNone') },
+  { value: 'minimal', label: t('composer.reasoningMinimal') },
+  { value: 'low', label: t('composer.reasoningLow') },
+  { value: 'medium', label: t('composer.reasoningMedium') },
+  { value: 'high', label: t('composer.reasoningHigh') },
+  { value: 'xhigh', label: t('composer.reasoningExtraHigh') },
+])
 function formatModelLabel(modelId: string): string {
   return modelId.trim().replace(/^gpt/i, 'GPT')
 }
@@ -607,11 +609,11 @@ const isSpeedToggleDisabled = computed(() =>
 )
 const speedModeDescription = computed(() => {
   if (props.isUpdatingSpeedMode) {
-    return 'Saving speed setting...'
+    return t('composer.fastModeSaving')
   }
   return props.selectedSpeedMode === 'fast'
-    ? 'About 1.5x faster, with credits used at 2x'
-    : 'Default speed with normal credit usage'
+    ? t('composer.fastModeDescOn')
+    : t('composer.fastModeDescOff')
 })
 const inProgressMode = computed<'steer' | 'queue'>(() =>
   props.inProgressSubmitMode === 'steer' ? 'steer' : 'queue',
@@ -619,8 +621,8 @@ const inProgressMode = computed<'steer' | 'queue'>(() =>
 const activeInProgressMode = ref<'steer' | 'queue'>(inProgressMode.value)
 const isDictationRecording = computed(() => dictationState.value === 'recording')
 const dictationButtonLabel = computed(() => {
-  if (dictationState.value === 'recording') return 'Stop dictation'
-  return props.dictationClickToToggle ? 'Click to dictate' : 'Hold to dictate'
+  if (dictationState.value === 'recording') return t('composer.stopDictation')
+  return props.dictationClickToToggle ? t('composer.clickToDictate') : t('composer.holdToDictate')
 })
 const dictationErrorText = computed(() =>
   dictationState.value === 'idle' ? dictationFeedback.value.trim() : '',
@@ -657,10 +659,10 @@ const dictationDurationLabel = computed(() => {
 
 const placeholderText = computed(() =>
   !props.activeThreadId
-    ? 'Select a thread to send a message'
+    ? t('composer.placeholderNoThread')
     : isPlanModeWaitingForModel.value
-      ? 'Loading models for plan mode...'
-      : 'Type a message... (@ for files, / for skills)',
+      ? t('composer.placeholderPlanMode')
+      : t('composer.placeholder'),
 )
 const hasSubmitContent = computed(() =>
   draft.value.trim().length > 0 || selectedImages.value.length > 0 || fileAttachments.value.length > 0,

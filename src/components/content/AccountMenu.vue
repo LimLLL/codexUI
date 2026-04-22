@@ -7,13 +7,13 @@
 
     <div v-if="isOpen" class="account-menu-panel">
       <div class="account-menu-header">
-        <p class="account-menu-title">Accounts</p>
+        <p class="account-menu-title">{{ $t('account.accounts') }}</p>
       </div>
 
       <p v-if="error" class="account-menu-error">{{ error }}</p>
 
       <p v-if="accounts.length === 0" class="account-menu-empty">
-        No saved accounts yet. Run `codex login`, then click reload.
+        {{ $t('account.noAccountsYet') }}
       </p>
 
       <div v-else class="account-menu-list">
@@ -24,7 +24,7 @@
           :class="{ 'is-active': account.isActive }"
         >
           <div class="account-menu-item-main">
-            <p class="account-menu-item-email">{{ account.email || 'Account' }}</p>
+            <p class="account-menu-item-email">{{ account.email || $t('account.accountFallback') }}</p>
             <p class="account-menu-item-meta">
               {{ formatMeta(account) }}
             </p>
@@ -35,7 +35,7 @@
             :disabled="isSwitching || account.isActive"
             @click="emit('switch', account.accountId)"
           >
-            {{ account.isActive ? 'Active' : isSwitching ? 'Switching…' : 'Switch' }}
+            {{ account.isActive ? $t('account.active') : isSwitching ? $t('account.switching') : $t('account.switch_') }}
           </button>
         </article>
       </div>
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { UiAccountEntry } from '../../types/codex'
 
 const props = defineProps<{
@@ -58,12 +59,13 @@ const emit = defineEmits<{
   switch: [accountId: string]
 }>()
 
+const { t } = useI18n()
 const rootRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
 
 const activeLabel = computed(() => {
   const active = props.accounts.find((account) => account.isActive) ?? null
-  if (!active) return 'Accounts'
+  if (!active) return t('account.accounts')
   return active.email || shortAccountId(active.accountId)
 })
 

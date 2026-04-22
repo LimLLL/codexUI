@@ -2,7 +2,7 @@
   <section class="review-pane" :class="{ 'is-mobile': isMobile }" @click.stop>
     <header class="review-pane-header">
       <div class="review-pane-heading">
-        <p class="review-pane-eyebrow">Review</p>
+        <p class="review-pane-eyebrow">{{ $t('review.eyebrow') }}</p>
         <p class="review-pane-title">{{ headerTitle }}</p>
       </div>
       <div class="review-pane-header-actions">
@@ -12,9 +12,9 @@
           class="review-pane-mobile-files-button"
           @click="isFileSheetOpen = true"
         >
-          Files
+          {{ $t('common.files') }}
         </button>
-        <button type="button" class="review-pane-close" aria-label="Close review pane" @click="$emit('close')">
+        <button type="button" class="review-pane-close" :aria-label="$t('review.closePane')" @click="$emit('close')">
           <IconTablerX class="icon-svg" />
         </button>
       </div>
@@ -38,7 +38,7 @@
 
       <div class="review-pane-toolbar-controls">
         <div class="review-pane-control-cluster">
-          <span class="review-pane-control-label">Compare</span>
+          <span class="review-pane-control-label">{{ $t('review.compare') }}</span>
           <div class="review-pane-segmented">
             <button
               type="button"
@@ -46,7 +46,7 @@
               :data-active="activeScope === 'workspace'"
               @click="activeScope = 'workspace'"
             >
-              Workspace
+              {{ $t('review.workspace') }}
             </button>
             <button
               type="button"
@@ -55,13 +55,13 @@
               :disabled="!snapshot?.baseBranch"
               @click="activeScope = 'baseBranch'"
             >
-              Base branch
+              {{ $t('review.baseBranch') }}
             </button>
           </div>
         </div>
 
         <div v-if="activeScope === 'baseBranch' && snapshot?.baseBranchOptions.length" class="review-pane-control-cluster">
-          <span class="review-pane-control-label">Branch</span>
+          <span class="review-pane-control-label">{{ $t('review.branch') }}</span>
           <label class="review-pane-branch-select-wrap">
             <select
               v-model="selectedBaseBranch"
@@ -79,7 +79,7 @@
         </div>
 
         <div v-if="activeScope === 'workspace'" class="review-pane-control-cluster">
-          <span class="review-pane-control-label">Changes</span>
+          <span class="review-pane-control-label">{{ $t('review.changes') }}</span>
           <div class="review-pane-segmented">
             <button
               type="button"
@@ -87,7 +87,7 @@
               :data-active="workspaceView === 'unstaged'"
               @click="workspaceView = 'unstaged'"
             >
-              Unstaged
+              {{ $t('review.unstaged') }}
             </button>
             <button
               type="button"
@@ -95,7 +95,7 @@
               :data-active="workspaceView === 'staged'"
               @click="workspaceView = 'staged'"
             >
-              Staged
+              {{ $t('review.staged') }}
             </button>
           </div>
         </div>
@@ -108,10 +108,10 @@
           :disabled="!canRunReview || isRunningReview"
           @click="runReview"
         >
-          {{ isRunningReview ? 'Reviewing…' : 'Run review' }}
+          {{ isRunningReview ? $t('review.reviewing') : $t('review.runReview') }}
         </button>
         <button type="button" class="review-pane-refresh" :disabled="isLoadingSnapshot" @click="reloadAll">
-          Refresh
+          {{ $t('common.refresh') }}
         </button>
       </div>
     </div>
@@ -121,34 +121,34 @@
     </div>
 
     <div v-if="snapshot" class="review-pane-meta">
-      <span>{{ snapshot.summary.fileCount }} files</span>
+      <span>{{ $t('review.filesCount', { count: snapshot.summary.fileCount }) }}</span>
       <span class="review-pane-summary-pill review-pane-summary-pill-add">+{{ snapshot.summary.addedLineCount }}</span>
       <span class="review-pane-summary-pill review-pane-summary-pill-remove">-{{ snapshot.summary.removedLineCount }}</span>
       <span v-if="snapshot.headBranch">{{ snapshot.headBranch }}</span>
-      <span v-if="activeScope === 'baseBranch' && snapshot.baseBranch">vs {{ snapshot.baseBranch }}</span>
+      <span v-if="activeScope === 'baseBranch' && snapshot.baseBranch">{{ $t('review.vs', { branch: snapshot.baseBranch }) }}</span>
     </div>
 
     <div v-if="activeTab === 'changes'" class="review-pane-content">
       <template v-if="!snapshot">
         <div class="review-pane-empty">
-          <p class="review-pane-empty-title">Loading review state</p>
+          <p class="review-pane-empty-title">{{ $t('review.loadingReviewState') }}</p>
         </div>
       </template>
 
       <template v-else-if="!snapshot.isGitRepo">
         <div class="review-pane-empty">
-          <p class="review-pane-empty-title">This folder is not a Git repository</p>
-          <p class="review-pane-empty-text">Initialize Git to review local changes and run Codex review.</p>
+          <p class="review-pane-empty-title">{{ $t('review.notGitRepo') }}</p>
+          <p class="review-pane-empty-text">{{ $t('review.notGitRepoDesc') }}</p>
           <button type="button" class="review-pane-primary-cta" :disabled="isInitializingGit" @click="initializeGit">
-            {{ isInitializingGit ? 'Initializing…' : 'Initialize Git' }}
+            {{ isInitializingGit ? $t('review.initializing') : $t('review.initializeGit') }}
           </button>
         </div>
       </template>
 
       <template v-else-if="activeScope === 'baseBranch' && !snapshot.baseBranch">
         <div class="review-pane-empty">
-          <p class="review-pane-empty-title">Base branch unavailable</p>
-          <p class="review-pane-empty-text">Could not resolve `origin/HEAD`, `main`, or `master` for this repository.</p>
+          <p class="review-pane-empty-title">{{ $t('review.baseBranchUnavailable') }}</p>
+          <p class="review-pane-empty-text">{{ $t('review.baseBranchUnavailableDesc') }}</p>
         </div>
       </template>
 
@@ -167,9 +167,9 @@
         </div>
 
         <div v-if="!snapshot.files.length" class="review-pane-empty">
-          <p class="review-pane-empty-title">No changes in this scope</p>
+          <p class="review-pane-empty-title">{{ $t('review.noChangesInScope') }}</p>
           <p class="review-pane-empty-text">
-            {{ activeScope === 'workspace' ? 'Your current workspace is clean.' : 'No merge diff found against the base branch.' }}
+            {{ activeScope === 'workspace' ? $t('review.workspaceClean') : $t('review.noMergeDiff') }}
           </p>
         </div>
 
@@ -221,7 +221,7 @@
             class="review-pane-resizer"
             role="separator"
             aria-orientation="vertical"
-            aria-label="Resize file list"
+            :aria-label="$t('review.resizeFileList')"
             @pointerdown="onResizerPointerDown"
           ></div>
 
@@ -252,7 +252,7 @@
               </div>
 
               <div v-if="selectedFile.hunks.length === 0" class="review-pane-raw-diff">
-                <pre>{{ selectedFile.diff || 'No unified diff available.' }}</pre>
+                <pre>{{ selectedFile.diff || $t('review.noUnifiedDiff') }}</pre>
               </div>
 
               <div v-else class="review-pane-hunks">
@@ -306,7 +306,7 @@
 
     <div v-else class="review-pane-findings">
       <div v-if="currentReviewResult?.summary" class="review-pane-summary-card">
-        <p class="review-pane-summary-title">Summary</p>
+        <p class="review-pane-summary-title">{{ $t('review.summary') }}</p>
         <pre class="review-pane-summary-text">{{ currentReviewResult.summary }}</pre>
       </div>
 
@@ -327,9 +327,9 @@
       </div>
 
       <div v-else class="review-pane-empty">
-        <p class="review-pane-empty-title">No structured findings yet</p>
+        <p class="review-pane-empty-title">{{ $t('review.noFindings') }}</p>
         <p class="review-pane-empty-text">
-          {{ currentReviewResult?.summary ? 'The latest review only returned summary text.' : 'Run review to populate this pane.' }}
+          {{ currentReviewResult?.summary ? $t('review.noFindingsSummaryOnly') : $t('review.noFindingsRun') }}
         </p>
       </div>
     </div>
@@ -343,7 +343,7 @@
         <div class="review-pane-sheet" @click.stop>
           <div class="review-pane-sheet-handle" aria-hidden="true"></div>
           <div class="review-pane-sheet-header">
-            <p class="review-pane-sheet-title">Changed files</p>
+            <p class="review-pane-sheet-title">{{ $t('review.changedFiles') }}</p>
             <p class="review-pane-sheet-count">{{ snapshot.files.length }}</p>
           </div>
           <div class="review-pane-sheet-list">
@@ -395,6 +395,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   applyReviewAction,
   getReviewSnapshot,
@@ -429,6 +430,7 @@ defineEmits<{
 }>()
 
 const { isMobile } = useMobile()
+const { t } = useI18n()
 
 const activeTab = ref<UiReviewTab>('changes')
 const activeScope = ref<UiReviewScope>('workspace')
@@ -452,10 +454,10 @@ const hunkRefs = new Map<string, HTMLElement>()
 let stopNotifications: (() => void) | null = null
 let stopResizeTracking: (() => void) | null = null
 
-const reviewTabs = [
-  { value: 'changes' as const, label: 'Changes' },
-  { value: 'findings' as const, label: 'Findings' },
-]
+const reviewTabs = computed(() => [
+  { value: 'changes' as const, label: t('review.tabChanges') },
+  { value: 'findings' as const, label: t('review.tabFindings') },
+])
 
 type ReviewTreeFolderNode = {
   kind: 'folder'
@@ -497,11 +499,11 @@ const selectedFile = computed(() => snapshot.value?.files.find((file) => file.id
 const folderExpansionState = ref<Record<string, boolean>>({})
 
 const headerTitle = computed(() => {
-  if (!snapshot.value?.isGitRepo) return 'Repository review'
+  if (!snapshot.value?.isGitRepo) return t('review.repositoryReview')
   if (activeScope.value === 'workspace') {
-    return workspaceView.value === 'staged' ? 'Staged changes' : 'Workspace changes'
+    return workspaceView.value === 'staged' ? t('review.stagedChanges') : t('review.workspaceChanges')
   }
-  return snapshot.value?.baseBranch ? `Against ${snapshot.value.baseBranch}` : 'Base branch'
+  return snapshot.value?.baseBranch ? t('review.againstBranch', { branch: snapshot.value.baseBranch }) : t('review.baseBranch')
 })
 
 const canRunReview = computed(() => (
@@ -522,31 +524,31 @@ const showRowActions = computed(() => showBulkActions.value && !isApplyingAction
 
 const bulkActions = computed(() => {
   if (workspaceView.value === 'staged') {
-    return [{ value: 'unstage' as UiReviewAction, label: 'Unstage all' }]
+    return [{ value: 'unstage' as UiReviewAction, label: t('review.unstageAll') }]
   }
   return [
-    { value: 'stage' as UiReviewAction, label: 'Stage all' },
-    { value: 'revert' as UiReviewAction, label: 'Revert all' },
+    { value: 'stage' as UiReviewAction, label: t('review.stageAll') },
+    { value: 'revert' as UiReviewAction, label: t('review.revertAll') },
   ]
 })
 
 const fileActions = computed(() => {
   if (workspaceView.value === 'staged') {
-    return [{ value: 'unstage' as UiReviewAction, label: 'Unstage file' }]
+    return [{ value: 'unstage' as UiReviewAction, label: t('review.unstageFile') }]
   }
   return [
-    { value: 'stage' as UiReviewAction, label: 'Stage file' },
-    { value: 'revert' as UiReviewAction, label: 'Revert file' },
+    { value: 'stage' as UiReviewAction, label: t('review.stageFile') },
+    { value: 'revert' as UiReviewAction, label: t('review.revertFile') },
   ]
 })
 
 const hunkActions = computed(() => {
   if (workspaceView.value === 'staged') {
-    return [{ value: 'unstage' as UiReviewAction, label: 'Unstage hunk' }]
+    return [{ value: 'unstage' as UiReviewAction, label: t('review.unstageHunk') }]
   }
   return [
-    { value: 'stage' as UiReviewAction, label: 'Stage hunk' },
-    { value: 'revert' as UiReviewAction, label: 'Revert hunk' },
+    { value: 'stage' as UiReviewAction, label: t('review.stageHunk') },
+    { value: 'revert' as UiReviewAction, label: t('review.revertHunk') },
   ]
 })
 
@@ -757,10 +759,10 @@ function treeIndentStyle(depth: number): Record<string, string> {
 }
 
 function formatOperation(operation: string): string {
-  if (operation === 'add') return 'Added'
-  if (operation === 'delete') return 'Deleted'
-  if (operation === 'rename') return 'Renamed'
-  return 'Modified'
+  if (operation === 'add') return t('review.operationAdded')
+  if (operation === 'delete') return t('review.operationDeleted')
+  if (operation === 'rename') return t('review.operationRenamed')
+  return t('review.operationModified')
 }
 
 function bindHunkRef(hunkId: string, element: unknown): void {
@@ -904,8 +906,8 @@ async function runReview(): Promise<void> {
   if (!canRunReview.value || isRunningReview.value) return
   reviewError.value = ''
   reviewStatusLabel.value = activeScope.value === 'workspace'
-    ? 'Reviewing current changes'
-    : `Reviewing against ${snapshot.value?.baseBranch ?? 'base branch'}`
+    ? t('review.reviewingChanges')
+    : t('review.reviewingAgainst', { branch: snapshot.value?.baseBranch ?? t('review.baseBranch') })
   isRunningReview.value = true
   pendingReviewKey.value = reviewKey.value
 

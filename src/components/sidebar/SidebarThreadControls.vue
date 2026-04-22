@@ -3,8 +3,8 @@
     <button
       class="sidebar-thread-controls-button"
       type="button"
-      :aria-label="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-      :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+      :aria-label="isSidebarCollapsed ? $t('sidebar.expandSidebar') : $t('sidebar.collapseSidebar')"
+      :title="isSidebarCollapsed ? $t('sidebar.expandSidebar') : $t('sidebar.collapseSidebar')"
       @click="$emit('toggle-sidebar')"
     >
       <IconTablerLayoutSidebarFilled v-if="isSidebarCollapsed" class="sidebar-thread-controls-icon" />
@@ -17,8 +17,8 @@
       v-if="showNewThreadButton"
       class="sidebar-thread-controls-button"
       type="button"
-      aria-label="Start new thread"
-      title="Start new thread"
+      :aria-label="$t('sidebar.startNewThread')"
+      :title="$t('sidebar.startNewThread')"
       @click="$emit('start-new-thread')"
     >
       <IconTablerFilePencil class="sidebar-thread-controls-icon" />

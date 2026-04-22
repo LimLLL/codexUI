@@ -14,7 +14,7 @@
             <div class="sdm-title-col">
               <div class="sdm-title-row">
                 <h3 class="sdm-title">{{ skill.displayName || skill.name }}</h3>
-                <span v-if="skill.installed && !effectiveEnabled" class="sdm-badge-disabled">Disabled</span>
+                <span v-if="skill.installed && !effectiveEnabled" class="sdm-badge-disabled">{{ $t('skills.disabled') }}</span>
               </div>
               <span class="sdm-owner">{{ skill.owner }}</span>
             </div>
@@ -27,10 +27,10 @@
         <div class="sdm-body">
           <p v-if="effectiveDescription" class="sdm-desc">{{ effectiveDescription }}</p>
 
-          <div v-if="isLoadingReadme" class="sdm-readme-loading">Loading skill contents...</div>
+          <div v-if="isLoadingReadme" class="sdm-readme-loading">{{ $t('skills.loadingContents') }}</div>
           <div v-else-if="readmeContent" class="sdm-readme" v-html="renderedReadme"></div>
 
-          <a class="sdm-link" :href="skill.url" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+          <a class="sdm-link" :href="skill.url" target="_blank" rel="noopener noreferrer">{{ $t('skills.viewOnGithub') }}</a>
         </div>
 
         <div class="sdm-footer">
@@ -42,7 +42,7 @@
               :disabled="isActing"
               @click="onUninstall"
             >
-              {{ props.isUninstalling ? 'Uninstalling...' : 'Uninstall' }}
+              {{ props.isUninstalling ? $t('skills.uninstalling') : $t('skills.uninstall') }}
             </button>
             <button
               v-else
@@ -51,7 +51,7 @@
               :disabled="isActing"
               @click="onInstall"
             >
-              {{ props.isInstalling ? 'Installing...' : 'Install' }}
+              {{ props.isInstalling ? $t('skills.installing') : $t('skills.install') }}
             </button>
 
             <button
@@ -61,7 +61,7 @@
               :disabled="isActing"
               @click="onToggleEnabled"
             >
-              {{ effectiveEnabled ? 'Disable' : 'Enable' }}
+              {{ effectiveEnabled ? $t('skills.disable') : $t('skills.enable') }}
             </button>
 
             <button
@@ -70,7 +70,7 @@
               type="button"
               @click="onBrowseFiles"
             >
-              Browse files
+              {{ $t('skills.browseFiles') }}
             </button>
           </div>
         </div>

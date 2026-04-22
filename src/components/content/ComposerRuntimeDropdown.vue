@@ -1,5 +1,5 @@
 <template>
-  <div class="runtime-toggle" role="radiogroup" aria-label="Continue in">
+  <div class="runtime-toggle" role="radiogroup" :aria-label="$t('composer.continueIn')">
     <button
       v-for="option in options"
       :key="option.value"
@@ -17,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import IconTablerFolder from '../icons/IconTablerFolder.vue'
 import IconTablerGitFork from '../icons/IconTablerGitFork.vue'
 
@@ -30,10 +31,14 @@ const emit = defineEmits<{
   'update:modelValue': [value: RuntimeMode]
 }>()
 
-const options = [
-  { value: 'local' as const, label: 'Local project', icon: IconTablerFolder },
-  { value: 'worktree' as const, label: 'New worktree', icon: IconTablerGitFork },
-]
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const options = computed(() => [
+  { value: 'local' as const, label: t('composer.runtimeLocal'), icon: IconTablerFolder },
+  { value: 'worktree' as const, label: t('composer.runtimeWorktree'), icon: IconTablerGitFork },
+])
 
 function onSelect(value: RuntimeMode): void {
   emit('update:modelValue', value)

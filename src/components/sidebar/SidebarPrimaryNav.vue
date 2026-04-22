@@ -1,8 +1,8 @@
 <template>
   <nav class="sidebar-primary-nav">
-    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">New thread</SidebarMenuRow>
-    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">Automations</SidebarMenuRow>
-    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">Skills</SidebarMenuRow>
+    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">{{ $t('sidebar.newThread') }}</SidebarMenuRow>
+    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">{{ $t('sidebar.automations') }}</SidebarMenuRow>
+    <SidebarMenuRow as="button" class="sidebar-nav-item" type="button">{{ $t('common.skills') }}</SidebarMenuRow>
   </nav>
 </template>
 
