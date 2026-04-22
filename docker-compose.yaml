@@ -13,6 +13,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CODEX_HOME=/root/.codex
       - CODEX_WORKSPACE=/workspace
+      - CODEXUI_PASSWORD=${CODEXUI_PASSWORD:-}
       # - CODEXUI_SANDBOX_MODE=workspace-write
       # - CODEXUI_APPROVAL_POLICY=suggest
       # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
