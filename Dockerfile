@@ -32,6 +32,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN corepack enable
 
+# Install mise (runtime version manager)
+RUN curl -fsSL https://mise.run | sh && \
+    ln -s /root/.local/bin/mise /usr/local/bin/mise
+
 # Install codex CLI
 RUN npm install -g @openai/codex
 
