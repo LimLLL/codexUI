@@ -1039,6 +1039,31 @@ function parseSessionMcpFunctionName(name: unknown): { server: string; tool: str
   return { server, tool }
 }
 
+/**
+ * Applies session-log completion data to a notification-captured MCP tool call
+ * without regressing a richer live record back to an older in-progress shape.
+ */
+function overlayRecoveredMcpToolCall(
+  existingItem: Record<string, unknown>,
+  recovered: SessionRecoveredMcpToolCall,
+): Record<string, unknown> {
+  const merged = { ...existingItem }
+  const existingId = readNonEmptyString(merged.id)
+  if (!existingId || existingId.startsWith('session-mcp-')) merged.id = recovered.id
+  if (!readNonEmptyString(merged.server)) merged.server = recovered.server
+  if (!readNonEmptyString(merged.tool)) merged.tool = recovered.tool
+  if (merged.arguments == null || merged.arguments === '') merged.arguments = recovered.arguments
+
+  const existingStatus = readNonEmptyString(merged.status)
+  if (recovered.status === 'completed' || recovered.status === 'failed' || !existingStatus) {
+    merged.status = recovered.status
+  }
+  if (recovered.result !== '') merged.result = recovered.result
+  if (recovered.error) merged.error = recovered.error
+  if (recovered.durationMs != null) merged.durationMs = recovered.durationMs
+  return merged
+}
+
 type SessionRecoveredFileChangeItem = {
   id: string
   type: 'fileChange'
@@ -1144,7 +1169,7 @@ function buildSessionItemOrder(sessionLogRaw: string, turnIds: Set<string>): Map
         if (!callId) continue
         if (rowTs > 0) callIdToTimestamp.set(callId, rowTs)
         const mcpToolCall: SessionRecoveredMcpToolCall = {
-          id: `session-mcp-${callId}`,
+          id: callId,
           type: 'mcpToolCall',
           server: mcpName.server,
           tool: mcpName.tool,
@@ -1548,7 +1573,7 @@ function mergeSessionCommandsIntoTurns(turns: unknown[], sessionLogRaw: string):
       } else if (slot.type === 'mcpToolCall' && slot.mcpToolCall) {
         const existingMcpToolCall = shiftExistingItem(mcpToolCalls)
         if (existingMcpToolCall) {
-          interleaved.push(existingMcpToolCall)
+          interleaved.push(overlayRecoveredMcpToolCall(existingMcpToolCall, slot.mcpToolCall))
         } else {
           interleaved.push(slot.mcpToolCall as unknown as Record<string, unknown>)
         }

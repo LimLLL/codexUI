@@ -38,6 +38,7 @@ import type {
   CollaborationModeKind,
   CollaborationModeOption,
   CommandExecutionData,
+  McpToolCallData,
   UiPendingRequestState,
   ReasoningEffort,
   SpeedMode,
@@ -577,6 +578,20 @@ function areCommandExecutionsEqual(first?: CommandExecutionData, second?: Comman
   return first.status === second.status && first.aggregatedOutput === second.aggregatedOutput && first.exitCode === second.exitCode
 }
 
+function areMcpToolCallsEqual(first?: McpToolCallData, second?: McpToolCallData): boolean {
+  if (!first && !second) return true
+  if (!first || !second) return false
+  return (
+    first.server === second.server
+    && first.tool === second.tool
+    && first.status === second.status
+    && first.arguments === second.arguments
+    && first.result === second.result
+    && first.error === second.error
+    && first.durationMs === second.durationMs
+  )
+}
+
 function arePlanStepsEqual(first: UiPlanStep[] = [], second: UiPlanStep[] = []): boolean {
   if (first.length !== second.length) return false
   for (let index = 0; index < first.length; index += 1) {
@@ -618,6 +633,7 @@ function areMessageFieldsEqual(first: UiMessage, second: UiMessage): boolean {
     first.rawPayload === second.rawPayload &&
     first.isUnhandled === second.isUnhandled &&
     areCommandExecutionsEqual(first.commandExecution, second.commandExecution) &&
+    areMcpToolCallsEqual(first.mcpToolCall, second.mcpToolCall) &&
     arePlanDataEqual(first.plan, second.plan) &&
     first.turnId === second.turnId &&
     first.turnIndex === second.turnIndex &&
@@ -851,6 +867,67 @@ function insertTurnSummaryMessage(messages: UiMessage[], summary: TurnSummarySta
   return next
 }
 
+/**
+ * Returns a stable turn key for persisted and live messages that belong to the
+ * same assistant turn.
+ */
+function readMessageTurnKey(message: UiMessage): string | null {
+  if (typeof message.turnId === 'string' && message.turnId.length > 0) {
+    return `turn:${message.turnId}`
+  }
+  if (typeof message.turnIndex === 'number' && Number.isFinite(message.turnIndex)) {
+    return `turn-index:${message.turnIndex}`
+  }
+  return null
+}
+
+/**
+ * Keeps thread/read output as the canonical backbone and inserts live-only
+ * overlays into the tail of their owning turn instead of appending them to the
+ * end of the entire conversation.
+ */
+function insertLiveMessagesIntoBackbone(backbone: UiMessage[], liveMessages: UiMessage[]): UiMessage[] {
+  if (liveMessages.length === 0) return backbone
+  const liveByTurnKey = new Map<string, UiMessage[]>()
+  const tailMessages: UiMessage[] = []
+
+  for (const message of liveMessages) {
+    const turnKey = readMessageTurnKey(message)
+    if (!turnKey) {
+      tailMessages.push(message)
+      continue
+    }
+    const existing = liveByTurnKey.get(turnKey)
+    if (existing) existing.push(message)
+    else liveByTurnKey.set(turnKey, [message])
+  }
+
+  const lastBackboneIndexByTurnKey = new Map<string, number>()
+  backbone.forEach((message, index) => {
+    const turnKey = readMessageTurnKey(message)
+    if (turnKey) lastBackboneIndexByTurnKey.set(turnKey, index)
+  })
+
+  const projected: UiMessage[] = []
+  const insertedTurnKeys = new Set<string>()
+  backbone.forEach((message, index) => {
+    projected.push(message)
+    const turnKey = readMessageTurnKey(message)
+    if (!turnKey || insertedTurnKeys.has(turnKey)) return
+    if (lastBackboneIndexByTurnKey.get(turnKey) !== index) return
+    const liveForTurn = liveByTurnKey.get(turnKey)
+    if (!liveForTurn || liveForTurn.length === 0) return
+    projected.push(...liveForTurn)
+    insertedTurnKeys.add(turnKey)
+  })
+
+  for (const [turnKey, messages] of liveByTurnKey.entries()) {
+    if (!insertedTurnKeys.has(turnKey)) projected.push(...messages)
+  }
+  if (tailMessages.length > 0) projected.push(...tailMessages)
+  return projected
+}
+
 function omitKey<TValue>(record: Record<string, TValue>, key: string): Record<string, TValue> {
   if (!(key in record)) return record
   const next = { ...record }
@@ -1015,7 +1092,9 @@ export function useDesktopState() {
   const liveAgentMessagesByThreadId = ref<Record<string, UiMessage[]>>({})
   const liveReasoningTextByThreadId = ref<Record<string, string>>({})
   const liveCommandsByThreadId = ref<Record<string, UiMessage[]>>({})
+  const liveToolCallsByThreadId = ref<Record<string, UiMessage[]>>({})
   const liveFileChangeMessagesByThreadId = ref<Record<string, UiMessage[]>>({})
+  const liveMessageSequenceByIdByThreadId = ref<Record<string, Record<string, number>>>({})
   const inProgressById = ref<Record<string, boolean>>({})
   type FileAttachment = { label: string; path: string; fsPath: string }
   type QueuedMessage = {
@@ -1139,6 +1218,7 @@ export function useDesktopState() {
   let activeReasoningItemId = ''
   let shouldAutoScrollOnNextAgentEvent = false
   const pendingTurnStartsById = new Map<string, TurnStartedInfo>()
+  let nextLiveMessageSequence = 0
   const fallbackRetryInFlightThreadIds = new Set<string>()
 
 
@@ -1194,16 +1274,75 @@ export function useDesktopState() {
     if (!threadId) return null
     return threadTokenUsageByThreadId.value[threadId] ?? null
   })
+  /**
+   * Records the first-seen arrival order for live message ids so turn-aware
+   * projection can merge separate live stores back into a single timeline.
+   */
+  function rememberLiveMessageOrder(threadId: string, messages: UiMessage[]): void {
+    if (!threadId || messages.length === 0) return
+    const previous = liveMessageSequenceByIdByThreadId.value[threadId] ?? {}
+    let next = previous
+    let changed = false
+    for (const message of messages) {
+      const messageId = message.id.trim()
+      if (!messageId || next[messageId] !== undefined) continue
+      if (!changed) next = { ...previous }
+      next[messageId] = nextLiveMessageSequence
+      nextLiveMessageSequence += 1
+      changed = true
+    }
+    if (!changed) return
+    liveMessageSequenceByIdByThreadId.value = {
+      ...liveMessageSequenceByIdByThreadId.value,
+      [threadId]: next,
+    }
+  }
+
+  function anchorLiveMessageToActiveTurn(threadId: string, message: UiMessage): UiMessage {
+    if (!threadId) return message
+    const turnId = message.turnId || activeTurnIdByThreadId.value[threadId] || undefined
+    const turnIndex = typeof message.turnIndex === 'number'
+      ? message.turnIndex
+      : (turnId ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId] : undefined)
+    if (turnId === message.turnId && turnIndex === message.turnIndex) {
+      return message
+    }
+    return {
+      ...message,
+      ...(turnId ? { turnId } : {}),
+      ...(typeof turnIndex === 'number' ? { turnIndex } : {}),
+    }
+  }
+
   const messages = computed<UiMessage[]>(() => {
     const threadId = selectedThreadId.value
     if (!threadId) return []
 
     const persisted = persistedMessagesByThreadId.value[threadId] ?? []
-    const livePlan = livePlanMessagesByThreadId.value[threadId] ?? []
-    const liveAgent = liveAgentMessagesByThreadId.value[threadId] ?? []
-    const liveCommands = liveCommandsByThreadId.value[threadId] ?? []
-    const liveFileChanges = liveFileChangeMessagesByThreadId.value[threadId] ?? []
-    const combined = [...persisted, ...livePlan, ...liveCommands, ...liveFileChanges, ...liveAgent]
+    const liveOrder = liveMessageSequenceByIdByThreadId.value[threadId] ?? {}
+    const persistedIds = new Set(persisted.map((message) => message.id))
+    const overlayCandidates = [
+      ...(livePlanMessagesByThreadId.value[threadId] ?? []),
+      ...(liveCommandsByThreadId.value[threadId] ?? []),
+      ...(liveToolCallsByThreadId.value[threadId] ?? []),
+      ...(liveFileChangeMessagesByThreadId.value[threadId] ?? []),
+      ...(liveAgentMessagesByThreadId.value[threadId] ?? []),
+    ]
+      .map((message) => anchorLiveMessageToActiveTurn(threadId, message))
+      .filter((message) => !persistedIds.has(message.id))
+    const dedupedOverlays = new Map<string, UiMessage>()
+    for (const message of overlayCandidates) {
+      if (!dedupedOverlays.has(message.id)) {
+        dedupedOverlays.set(message.id, message)
+      }
+    }
+    const orderedOverlays = [...dedupedOverlays.values()].sort((first, second) => {
+      const firstOrder = liveOrder[first.id] ?? Number.MAX_SAFE_INTEGER
+      const secondOrder = liveOrder[second.id] ?? Number.MAX_SAFE_INTEGER
+      if (firstOrder !== secondOrder) return firstOrder - secondOrder
+      return first.id.localeCompare(second.id)
+    })
+    const combined = insertLiveMessagesIntoBackbone(persisted, orderedOverlays)
 
     const summary = turnSummaryByThreadId.value[threadId]
     if (!summary) return combined
@@ -1390,6 +1529,7 @@ export function useDesktopState() {
         clearLivePlansForThread(threadId)
         setLiveAgentMessagesForThread(threadId, [])
         clearLiveReasoningForThread(threadId)
+        clearLiveToolCallsForThread(threadId)
         if (liveCommandsByThreadId.value[threadId]) {
           liveCommandsByThreadId.value = omitKey(liveCommandsByThreadId.value, threadId)
         }
@@ -1748,7 +1888,9 @@ export function useDesktopState() {
     liveAgentMessagesByThreadId.value = pruneThreadStateMap(liveAgentMessagesByThreadId.value, activeThreadIds)
     liveReasoningTextByThreadId.value = pruneThreadStateMap(liveReasoningTextByThreadId.value, activeThreadIds)
     liveCommandsByThreadId.value = pruneThreadStateMap(liveCommandsByThreadId.value, activeThreadIds)
+    liveToolCallsByThreadId.value = pruneThreadStateMap(liveToolCallsByThreadId.value, activeThreadIds)
     liveFileChangeMessagesByThreadId.value = pruneThreadStateMap(liveFileChangeMessagesByThreadId.value, activeThreadIds)
+    liveMessageSequenceByIdByThreadId.value = pruneThreadStateMap(liveMessageSequenceByIdByThreadId.value, activeThreadIds)
     turnSummaryByThreadId.value = pruneThreadStateMap(turnSummaryByThreadId.value, activeThreadIds)
     turnActivityByThreadId.value = pruneThreadStateMap(turnActivityByThreadId.value, activeThreadIds)
     turnErrorByThreadId.value = pruneThreadStateMap(turnErrorByThreadId.value, activeThreadIds)
@@ -1803,7 +1945,11 @@ export function useDesktopState() {
     }
   }
 
-  function setThreadInProgress(threadId: string, nextInProgress: boolean): void {
+  function setThreadInProgress(
+    threadId: string,
+    nextInProgress: boolean,
+    options: { clearLiveState?: boolean } = {},
+  ): void {
     if (!threadId) return
     const currentValue = inProgressById.value[threadId] === true
     if (currentValue === nextInProgress) return
@@ -1814,7 +1960,9 @@ export function useDesktopState() {
       }
     } else {
       inProgressById.value = omitKey(inProgressById.value, threadId)
-      clearCompletedTurnLiveState(threadId)
+      if (options.clearLiveState !== false) {
+        clearCompletedTurnLiveState(threadId)
+      }
       clearInterruptPersistenceGate(threadId)
     }
     applyThreadFlags()
@@ -2035,6 +2183,7 @@ export function useDesktopState() {
 
   function setLiveAgentMessagesForThread(threadId: string, nextMessages: UiMessage[]): void {
     const previous = liveAgentMessagesByThreadId.value[threadId] ?? []
+    rememberLiveMessageOrder(threadId, nextMessages)
     if (areMessageArraysEqual(previous, nextMessages)) return
     liveAgentMessagesByThreadId.value = {
       ...liveAgentMessagesByThreadId.value,
@@ -2050,6 +2199,7 @@ export function useDesktopState() {
 
   function setLiveFileChangeMessagesForThread(threadId: string, nextMessages: UiMessage[]): void {
     const previous = liveFileChangeMessagesByThreadId.value[threadId] ?? []
+    rememberLiveMessageOrder(threadId, nextMessages)
     if (areMessageArraysEqual(previous, nextMessages)) return
     liveFileChangeMessagesByThreadId.value = {
       ...liveFileChangeMessagesByThreadId.value,
@@ -2059,6 +2209,7 @@ export function useDesktopState() {
 
   function setLivePlanMessagesForThread(threadId: string, nextMessages: UiMessage[]): void {
     const previous = livePlanMessagesByThreadId.value[threadId] ?? []
+    rememberLiveMessageOrder(threadId, nextMessages)
     if (areMessageArraysEqual(previous, nextMessages)) return
     livePlanMessagesByThreadId.value = {
       ...livePlanMessagesByThreadId.value,
@@ -2082,6 +2233,44 @@ export function useDesktopState() {
     const previous = liveFileChangeMessagesByThreadId.value[threadId] ?? []
     const next = upsertMessage(previous, nextMessage)
     setLiveFileChangeMessagesForThread(threadId, next)
+  }
+
+  /**
+   * Mirrors the command execution live-store behavior for MCP tool calls so the
+   * streaming UI can render tool start, progress, and completion without waiting
+   * for thread/read recovery.
+   */
+  function setLiveToolCallMessagesForThread(threadId: string, nextMessages: UiMessage[]): void {
+    const previous = liveToolCallsByThreadId.value[threadId] ?? []
+    rememberLiveMessageOrder(threadId, nextMessages)
+    if (areMessageArraysEqual(previous, nextMessages)) return
+    liveToolCallsByThreadId.value = {
+      ...liveToolCallsByThreadId.value,
+      [threadId]: nextMessages,
+    }
+  }
+
+  function upsertLiveToolCall(threadId: string, nextMessage: UiMessage): void {
+    rememberLiveMessageOrder(threadId, [nextMessage])
+    const previous = liveToolCallsByThreadId.value[threadId] ?? []
+    const next = upsertMessage(previous, nextMessage)
+    setLiveToolCallMessagesForThread(threadId, next)
+  }
+
+  function removeLiveToolCallsPersistedIn(threadId: string, persistedMessages: UiMessage[]): void {
+    const current = liveToolCallsByThreadId.value[threadId]
+    if (!current || current.length === 0) return
+    const persistedIds = new Set(persistedMessages.map((message) => message.id))
+    const next = current.filter((message) => !persistedIds.has(message.id))
+    if (next.length === current.length) return
+    if (next.length === 0) {
+      liveToolCallsByThreadId.value = omitKey(liveToolCallsByThreadId.value, threadId)
+    } else {
+      liveToolCallsByThreadId.value = {
+        ...liveToolCallsByThreadId.value,
+        [threadId]: next,
+      }
+    }
   }
 
   function setLiveReasoningText(threadId: string, text: string): void {
@@ -2124,16 +2313,28 @@ export function useDesktopState() {
     liveFileChangeMessagesByThreadId.value = omitKey(liveFileChangeMessagesByThreadId.value, threadId)
   }
 
+  function clearLiveToolCallsForThread(threadId: string): void {
+    if (!threadId) return
+    if (!(threadId in liveToolCallsByThreadId.value)) return
+    liveToolCallsByThreadId.value = omitKey(liveToolCallsByThreadId.value, threadId)
+  }
+
   function clearCompletedTurnLiveState(threadId: string): void {
     if (!threadId) return
     clearLivePlansForThread(threadId)
+    clearLiveAgentMessagesForThread(threadId)
     clearLiveReasoningForThread(threadId)
+    clearLiveFileChangesForThread(threadId)
+    clearLiveToolCallsForThread(threadId)
     setTurnActivityForThread(threadId, null)
     if (threadId === selectedThreadId.value) {
       activeReasoningItemId = ''
     }
     if (liveCommandsByThreadId.value[threadId]) {
       liveCommandsByThreadId.value = omitKey(liveCommandsByThreadId.value, threadId)
+    }
+    if (liveMessageSequenceByIdByThreadId.value[threadId]) {
+      liveMessageSequenceByIdByThreadId.value = omitKey(liveMessageSequenceByIdByThreadId.value, threadId)
     }
     if (activeTurnIdByThreadId.value[threadId]) {
       activeTurnIdByThreadId.value = omitKey(activeTurnIdByThreadId.value, threadId)
@@ -2960,16 +3161,28 @@ export function useDesktopState() {
     return ''
   }
 
-  function readAgentMessageDelta(notification: RpcNotification): { messageId: string; delta: string } | null {
+  function readAgentMessageDelta(notification: RpcNotification): UiMessage | null {
     const params = asRecord(notification.params)
     if (!params) return null
 
     // Канонический live-канал агентского текста.
     if (notification.method === 'item/agentMessage/delta') {
-      const messageId = readString(params.itemId)
+      const threadId = extractThreadIdFromNotification(notification)
+      const turnId = readString(params.turnId) || readString(params.turn_id)
+      const turnIndex = threadId && turnId
+        ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId]
+        : undefined
+      const id = readString(params.itemId)
       const delta = readString(params.delta)
-      if (!messageId || !delta) return null
-      return { messageId, delta }
+      if (!id || !delta) return null
+      return {
+        id,
+        role: 'assistant',
+        text: delta,
+        messageType: 'agentMessage.live',
+        turnId: turnId || undefined,
+        turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
+      }
     }
 
     return null
@@ -2984,12 +3197,19 @@ export function useDesktopState() {
       if (!item || item.type !== 'agentMessage') return null
       const id = readString(item.id)
       const text = readString(item.text)
+      const threadId = extractThreadIdFromNotification(notification)
+      const turnId = readString(params?.turnId) || readString(params?.turn_id)
+      const turnIndex = threadId && turnId
+        ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId]
+        : undefined
       if (!id || !text) return null
       return {
         id,
         role: 'assistant',
         text,
         messageType: 'agentMessage.live',
+        turnId: turnId || undefined,
+        turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
       }
     }
 
@@ -3016,6 +3236,102 @@ export function useDesktopState() {
     return `data:image/png;base64,${compact}`
   }
 
+  /**
+   * Normalizes structured MCP tool arguments, progress, and results into a
+   * display-friendly string without assuming the payload is already plain text.
+   */
+  function formatMcpToolCallValue(value: unknown): string {
+    if (value == null) return ''
+    if (typeof value === 'string') return value
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return String(value)
+    }
+  }
+
+  function normalizeMcpToolCallStatus(value: string): McpToolCallData['status'] {
+    if (value === 'failed') return 'failed'
+    if (value === 'declined') return 'declined'
+    if (value === 'interrupted') return 'interrupted'
+    if (value === 'inProgress' || value === 'in_progress') return 'inProgress'
+    return 'completed'
+  }
+
+  function readMcpToolCallStarted(notification: RpcNotification): UiMessage | null {
+    if (notification.method !== 'item/started') return null
+    const params = asRecord(notification.params)
+    const item = asRecord(params?.item)
+    if (!item || item.type !== 'mcpToolCall') return null
+    const id = readString(item.id)
+    const server = readString(item.server)
+    const tool = readString(item.tool)
+    if (!id || !server || !tool) return null
+    const threadId = extractThreadIdFromNotification(notification)
+    const turnId = readString(params?.turnId) || readString(params?.turn_id)
+    const turnIndex = threadId && turnId
+      ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId]
+      : undefined
+    return {
+      id,
+      role: 'system',
+      text: `${server}/${tool}`,
+      messageType: 'mcpToolCall',
+      mcpToolCall: {
+        server,
+        tool,
+        status: normalizeMcpToolCallStatus(readString(item.status)),
+        arguments: formatMcpToolCallValue(item.arguments),
+        result: formatMcpToolCallValue(item.result),
+        error: formatMcpToolCallValue(item.error),
+        durationMs: readNumber(item.durationMs),
+      },
+      turnId: turnId || undefined,
+      turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
+    }
+  }
+
+  function readMcpToolCallProgress(notification: RpcNotification): { itemId: string; message: string } | null {
+    if (notification.method !== 'item/mcpToolCall/progress') return null
+    const params = asRecord(notification.params)
+    const itemId = readString(params?.itemId)
+    const message = readString(params?.message)
+    return itemId && message ? { itemId, message } : null
+  }
+
+  function readMcpToolCallCompleted(notification: RpcNotification): UiMessage | null {
+    if (notification.method !== 'item/completed') return null
+    const params = asRecord(notification.params)
+    const item = asRecord(params?.item)
+    if (!item || item.type !== 'mcpToolCall') return null
+    const id = readString(item.id)
+    const server = readString(item.server)
+    const tool = readString(item.tool)
+    if (!id || !server || !tool) return null
+    const threadId = extractThreadIdFromNotification(notification)
+    const turnId = readString(params?.turnId) || readString(params?.turn_id)
+    const turnIndex = threadId && turnId
+      ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId]
+      : undefined
+    return {
+      id,
+      role: 'system',
+      text: `${server}/${tool}`,
+      messageType: 'mcpToolCall',
+      mcpToolCall: {
+        server,
+        tool,
+        status: normalizeMcpToolCallStatus(readString(item.status)),
+        arguments: formatMcpToolCallValue(item.arguments),
+        result: formatMcpToolCallValue(item.result),
+        error: formatMcpToolCallValue(item.error),
+        durationMs: readNumber(item.durationMs),
+      },
+      turnId: turnId || undefined,
+      turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
+    }
+  }
+
   function readCompletedImageView(notification: RpcNotification): UiMessage | null {
     if (notification.method !== 'item/completed') return null
     const params = asRecord(notification.params)
@@ -3023,6 +3339,11 @@ export function useDesktopState() {
     if (!item) return null
     const id = readString(item.id)
     if (!id) return null
+    const threadId = extractThreadIdFromNotification(notification)
+    const turnId = readString(params?.turnId) || readString(params?.turn_id)
+    const turnIndex = threadId && turnId
+      ? turnIndexByTurnIdByThreadId.value[threadId]?.[turnId]
+      : undefined
     if (item.type === 'imageView') {
       const path = readString(item.path)
       if (!path) return null
@@ -3032,6 +3353,8 @@ export function useDesktopState() {
         text: '',
         images: [toLocalImageUrl(path)],
         messageType: 'imageView',
+        turnId: turnId || undefined,
+        turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
       }
     }
     if (item.type !== 'imageGeneration' && item.type !== 'image_generation') return null
@@ -3044,6 +3367,8 @@ export function useDesktopState() {
       text: '',
       images: [imageUrl],
       messageType: 'imageView',
+      turnId: turnId || undefined,
+      turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
 
     }
   }
@@ -3143,6 +3468,7 @@ export function useDesktopState() {
   }
 
   function upsertLiveCommand(threadId: string, msg: UiMessage): void {
+    rememberLiveMessageOrder(threadId, [msg])
     const previous = liveCommandsByThreadId.value[threadId] ?? []
     const next = upsertMessage(previous, msg)
     if (next === previous) return
@@ -3297,7 +3623,7 @@ export function useDesktopState() {
       if (activeTurnIdByThreadId.value[completedTurn.threadId]) {
         activeTurnIdByThreadId.value = omitKey(activeTurnIdByThreadId.value, completedTurn.threadId)
       }
-      setThreadInProgress(completedTurn.threadId, false)
+      setThreadInProgress(completedTurn.threadId, false, { clearLiveState: false })
       setTurnActivityForThread(completedTurn.threadId, null)
       markThreadUnreadByEvent(completedTurn.threadId)
       if (!shouldRetryWithFallback) {
@@ -3365,13 +3691,15 @@ export function useDesktopState() {
     const liveAgentMessageDelta = readAgentMessageDelta(notification)
     if (liveAgentMessageDelta) {
       const existing = (liveAgentMessagesByThreadId.value[notificationThreadId] ?? [])
-        .find((message) => message.id === liveAgentMessageDelta.messageId)
-      const nextText = `${existing?.text ?? ''}${liveAgentMessageDelta.delta}`
+        .find((message) => message.id === liveAgentMessageDelta.id)
+      const nextText = `${existing?.text ?? ''}${liveAgentMessageDelta.text}`
       upsertLiveAgentMessage(notificationThreadId, {
-        id: liveAgentMessageDelta.messageId,
-        role: 'assistant',
+        ...liveAgentMessageDelta,
         text: nextText,
-        messageType: 'agentMessage.live',
+        turnId: liveAgentMessageDelta.turnId ?? existing?.turnId,
+        turnIndex: typeof liveAgentMessageDelta.turnIndex === 'number'
+          ? liveAgentMessageDelta.turnIndex
+          : existing?.turnIndex,
       })
     }
 
@@ -3410,6 +3738,32 @@ export function useDesktopState() {
         activeReasoningItemId = ''
       }
     }
+
+    const mcpToolCallStarted = readMcpToolCallStarted(notification)
+    if (mcpToolCallStarted) {
+      upsertLiveToolCall(notificationThreadId, mcpToolCallStarted)
+      setTurnActivityForThread(notificationThreadId, {
+        label: 'Running tool',
+        details: [mcpToolCallStarted.text],
+      })
+    }
+
+    const mcpToolCallProgress = readMcpToolCallProgress(notification)
+    if (mcpToolCallProgress) {
+      const current = (liveToolCallsByThreadId.value[notificationThreadId] ?? []).find((message) => message.id === mcpToolCallProgress.itemId)
+      if (current?.mcpToolCall) {
+        const nextProgressOutput = current.mcpToolCall.result.trim().length > 0
+          ? `${current.mcpToolCall.result}\n\n${mcpToolCallProgress.message}`
+          : mcpToolCallProgress.message
+        upsertLiveToolCall(notificationThreadId, {
+          ...current,
+          mcpToolCall: { ...current.mcpToolCall, result: nextProgressOutput },
+        })
+      }
+    }
+
+    const mcpToolCallCompleted = readMcpToolCallCompleted(notification)
+    if (mcpToolCallCompleted) upsertLiveToolCall(notificationThreadId, mcpToolCallCompleted)
 
     const commandStarted = readCommandExecutionStarted(notification)
     if (commandStarted) {
@@ -3453,19 +3807,14 @@ export function useDesktopState() {
     if (notification.method === 'turn/completed') {
       activeReasoningItemId = ''
       shouldAutoScrollOnNextAgentEvent = false
-      clearLiveReasoningForThread(notificationThreadId)
-      if (liveCommandsByThreadId.value[notificationThreadId]) {
-        liveCommandsByThreadId.value = omitKey(liveCommandsByThreadId.value, notificationThreadId)
-      }
       const completedThreadId = extractThreadIdFromNotification(notification)
       if (completedThreadId) {
-        setThreadInProgress(completedThreadId, false)
-        setTurnActivityForThread(completedThreadId, null)
-        markThreadUnreadByEvent(completedThreadId)
-        if (!shouldRetryWithFallback) {
-          clearPendingTurnRequest(completedThreadId)
-          void processQueuedMessages(completedThreadId)
-        }
+        void loadMessages(completedThreadId, {
+          silent: true,
+          force: true,
+        }).catch(() => {
+          // Preserve live state when canonical reconciliation fails.
+        })
       }
     }
 
@@ -3709,7 +4058,7 @@ export function useDesktopState() {
     await loadThreadsPromise
   }
 
-  async function loadMessages(threadId: string, options: { silent?: boolean } = {}) {
+  async function loadMessages(threadId: string, options: { silent?: boolean; force?: boolean } = {}) {
     if (!threadId) {
       return
     }
@@ -3717,7 +4066,7 @@ export function useDesktopState() {
     const existingLoad = loadMessagePromiseByThreadId.get(threadId)
     if (existingLoad) {
       await existingLoad
-      return
+      if (options.force !== true) return
     }
 
     const alreadyLoaded = loadedMessagesByThreadId.value[threadId] === true
@@ -3733,6 +4082,7 @@ export function useDesktopState() {
       const loadedRecently =
         Date.now() - (lastMessageLoadAtByThreadId.get(threadId) ?? 0) < RECENT_THREAD_MESSAGE_LOAD_REUSE_MS
       const canReuseLoadedMessages =
+        options.force !== true &&
         alreadyLoaded &&
         (
           loadedRecently ||
@@ -3764,9 +4114,7 @@ export function useDesktopState() {
       replaceTurnIndexLookupForThread(threadId, turnIndexByTurnId)
       rebindLiveFileChangeTurnIndices(threadId)
       const previousPersisted = persistedMessagesByThreadId.value[threadId] ?? []
-      const mergedMessages = mergeMessages(previousPersisted, nextMessages, {
-        preserveMissing: options.silent === true,
-      })
+      const mergedMessages = mergeMessages(previousPersisted, nextMessages)
       setPersistedMessagesForThread(threadId, mergedMessages)
 
       const previousLiveAgent = liveAgentMessagesByThreadId.value[threadId] ?? []
@@ -3777,6 +4125,7 @@ export function useDesktopState() {
         clearLiveAgentMessagesForThread(threadId)
       }
       removeLiveCommandsPersistedIn(threadId, nextMessages)
+      removeLiveToolCallsPersistedIn(threadId, nextMessages)
       removeLiveFileChangesPersistedIn(threadId, nextMessages)
 
       loadedMessagesByThreadId.value = {
@@ -4002,6 +4351,7 @@ export function useDesktopState() {
       clearLivePlansForThread(forkedThreadId)
       setLiveAgentMessagesForThread(forkedThreadId, [])
       clearLiveReasoningForThread(forkedThreadId)
+      clearLiveToolCallsForThread(forkedThreadId)
       if (liveCommandsByThreadId.value[forkedThreadId]) {
         liveCommandsByThreadId.value = omitKey(liveCommandsByThreadId.value, forkedThreadId)
       }
@@ -4438,6 +4788,7 @@ export function useDesktopState() {
       setPersistedMessagesForThread(threadId, nextMessages)
       setLiveAgentMessagesForThread(threadId, [])
       clearLiveReasoningForThread(threadId)
+      clearLiveToolCallsForThread(threadId)
       if (liveCommandsByThreadId.value[threadId]) {
         liveCommandsByThreadId.value = omitKey(liveCommandsByThreadId.value, threadId)
       }
@@ -4824,7 +5175,9 @@ export function useDesktopState() {
     liveAgentMessagesByThreadId.value = {}
     liveReasoningTextByThreadId.value = {}
     liveCommandsByThreadId.value = {}
+    liveToolCallsByThreadId.value = {}
     liveFileChangeMessagesByThreadId.value = {}
+    liveMessageSequenceByIdByThreadId.value = {}
     turnIndexByTurnIdByThreadId.value = {}
     turnActivityByThreadId.value = {}
     turnSummaryByThreadId.value = {}
