@@ -1,5 +1,5 @@
 <template>
-  <section class="conversation-root" @contextmenu.capture="onConversationContextMenu">
+  <section class="conversation-root" @contextmenu.capture="onConversationContextMenu" @click.capture="onFileLinkClick">
     <p v-if="isLoading" class="conversation-loading">{{ $t('Loading messages...') }}</p>
 
     <p
@@ -864,6 +864,12 @@
         </Transition>
       </div>
     </div>
+
+    <FilePreviewModal
+      v-if="filePreviewEntry"
+      :entry="filePreviewEntry"
+      @close="filePreviewEntry = null"
+    />
   </section>
 </template>
 
@@ -878,6 +884,7 @@ import IconTablerCopy from '../icons/IconTablerCopy.vue'
 import IconTablerFilePencil from '../icons/IconTablerFilePencil.vue'
 import IconTablerGitFork from '../icons/IconTablerGitFork.vue'
 import IconTablerX from '../icons/IconTablerX.vue'
+import FilePreviewModal from './FilePreviewModal.vue'
 
 type HighlightJsModule = (typeof import('highlight.js/lib/common'))['default']
 
@@ -899,6 +906,7 @@ const fileLinkContextMenuX = ref(0)
 const fileLinkContextMenuY = ref(0)
 const fileLinkContextBrowseUrl = ref('')
 const fileLinkContextEditUrl = ref('')
+const filePreviewEntry = ref<{ name: string; path: string; extension: string; size: number } | null>(null)
 const { isMobile } = useMobile()
 
 function parsePlanFromMessageText(text: string): { explanation: string; steps: UiPlanStep[] } | null {
@@ -2636,6 +2644,25 @@ function toEditUrlFromBrowseHref(href: string): string {
   } catch {
     return ''
   }
+}
+
+function onFileLinkClick(event: MouseEvent): void {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  const anchor = target.closest('a.message-file-link')
+  if (!(anchor instanceof HTMLAnchorElement)) return
+  const href = (anchor.getAttribute('href') ?? '').trim()
+  if (!href || href === '#') return
+  const prefix = '/codex-local-browse'
+  if (!href.startsWith(prefix)) return
+  event.preventDefault()
+  event.stopPropagation()
+  const filePath = decodeURI(href.slice(prefix.length))
+  const lastSlash = filePath.lastIndexOf('/')
+  const name = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
+  const dotIndex = name.lastIndexOf('.')
+  const extension = dotIndex > 0 ? name.slice(dotIndex).toLowerCase() : ''
+  filePreviewEntry.value = { name, path: filePath, extension, size: 0 }
 }
 
 function onConversationContextMenu(event: MouseEvent): void {

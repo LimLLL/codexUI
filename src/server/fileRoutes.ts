@@ -261,6 +261,21 @@ export async function handleFileRoutes(
         setJson(res, 400, { error: 'Path is not a file.' })
         return true
       }
+      // Binary detection: read first 8KB and check for null bytes
+      const probeSize = Math.min(8192, fileStat.size)
+      if (probeSize > 0) {
+        const fh = await fsOpen(filePath, 'r')
+        try {
+          const probe = Buffer.alloc(probeSize)
+          const { bytesRead } = await fh.read(probe, 0, probeSize, 0)
+          if (probe.subarray(0, bytesRead).includes(0)) {
+            setJson(res, 400, { error: 'Binary file — not supported for preview.' })
+            return true
+          }
+        } finally {
+          await fh.close()
+        }
+      }
       const maxSize = 1024 * 1024 // 1 MB
       if (fileStat.size > maxSize) {
         const fh = await fsOpen(filePath, 'r')

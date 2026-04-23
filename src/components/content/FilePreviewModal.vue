@@ -133,6 +133,7 @@ function getPreviewType(ext: string): string {
   if (MARKDOWN_EXTS.has(ext)) return 'markdown'
   if (ext in CODE_LANG_MAP) return 'code'
   if (TEXT_EXTS.has(ext)) return 'text'
+  if (!ext) return 'text'
   return 'unsupported'
 }
 
@@ -153,6 +154,7 @@ const fileSize = computed(() => {
 function mapServerError(msg: string): string {
   if (msg.includes('officecli not found')) return t('OfficeCLI is not installed. Office file preview requires OfficeCLI.')
   if (msg.includes('not a file')) return t('Path is not a file.')
+  if (msg.includes('Binary file')) return t('Preview is not available for this file type.')
   if (msg.includes('not found') || msg.includes('Not found')) return t('File or folder not found.')
   if (msg.includes('absolute')) return t('Invalid path.')
   if (msg.includes('not supported for preview')) return t('Preview is not available for this file type.')
