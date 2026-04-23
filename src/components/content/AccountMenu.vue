@@ -7,13 +7,13 @@
 
     <div v-if="isOpen" class="account-menu-panel">
       <div class="account-menu-header">
-        <p class="account-menu-title">{{ $t('account.accounts') }}</p>
+        <p class="account-menu-title">{{ $t('Accounts') }}</p>
       </div>
 
       <p v-if="error" class="account-menu-error">{{ error }}</p>
 
       <p v-if="accounts.length === 0" class="account-menu-empty">
-        {{ $t('account.noAccountsYet') }}
+        {{ $t('No saved accounts yet. Run `codex login`, then click reload.') }}
       </p>
 
       <div v-else class="account-menu-list">
@@ -24,7 +24,7 @@
           :class="{ 'is-active': account.isActive }"
         >
           <div class="account-menu-item-main">
-            <p class="account-menu-item-email">{{ account.email || $t('account.accountFallback') }}</p>
+            <p class="account-menu-item-email">{{ account.email || $t('Account') }}</p>
             <p class="account-menu-item-meta">
               {{ formatMeta(account) }}
             </p>
@@ -35,7 +35,7 @@
             :disabled="isSwitching || account.isActive"
             @click="emit('switch', account.accountId)"
           >
-            {{ account.isActive ? $t('account.active') : isSwitching ? $t('account.switching') : $t('account.switch_') }}
+            {{ account.isActive ? $t('Active') : isSwitching ? $t('Switching\u2026') : $t('Switch') }}
           </button>
         </article>
       </div>
@@ -65,7 +65,7 @@ const isOpen = ref(false)
 
 const activeLabel = computed(() => {
   const active = props.accounts.find((account) => account.isActive) ?? null
-  if (!active) return t('account.accounts')
+  if (!active) return t('Accounts')
   return active.email || shortAccountId(active.accountId)
 })
 

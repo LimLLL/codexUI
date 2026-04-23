@@ -2,8 +2,8 @@
   <div class="fmp-wrapper" :class="{ 'is-open': visible }" @transitionend="onTransitionEnd">
     <section v-if="showContent" class="fmp-root" @click.stop>
       <header class="fmp-header">
-        <h3 class="fmp-title">{{ $t('fileManager.title') }}</h3>
-        <button type="button" class="fmp-close" :aria-label="$t('common.close')" @click="$emit('close')">
+        <h3 class="fmp-title">{{ $t('Files') }}</h3>
+        <button type="button" class="fmp-close" :aria-label="$t('Close')" @click="$emit('close')">
           <IconTablerX class="fmp-close-icon" />
         </button>
       </header>

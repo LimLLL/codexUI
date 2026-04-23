@@ -18,18 +18,18 @@
       <div class="thread-terminal-actions">
         <select
           class="thread-terminal-quick-command"
-          aria-label="Run quick command"
-          title="Run quick command"
+          :aria-label="t('Run quick command')"
+          :title="t('Run quick command')"
           @change="onQuickCommandSelect"
         >
-          <option value="">Run...</option>
+          <option value="">{{ t('Run...') }}</option>
           <option v-for="command in quickCommands" :key="command.value" :value="command.value">
             {{ command.label }}
           </option>
-          <option :value="ADD_QUICK_COMMAND_VALUE">Add command...</option>
+          <option :value="ADD_QUICK_COMMAND_VALUE">{{ t('Add command...') }}</option>
         </select>
-        <button class="thread-terminal-action" type="button" title="New" @click="onNewTerminal">
-          New
+        <button class="thread-terminal-action" type="button" :title="t('New session')" @click="onNewTerminal">
+          {{ t('New') }}
         </button>
         <button class="thread-terminal-action" type="button" :title="t('Hide terminal')" @click="$emit('hide')">
           {{ t('Hide') }}
@@ -50,7 +50,6 @@ import { useI18n } from 'vue-i18n'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
-import { useUiLanguage } from '../../composables/useUiLanguage'
 import {
   attachThreadTerminal,
   closeThreadTerminal,
@@ -81,8 +80,6 @@ let fitAddon: FitAddon | null = null
 let resizeObserver: ResizeObserver | null = null
 let unsubscribeNotifications: (() => void) | null = null
 let resizeFrame = 0
-const { t } = useUiLanguage()
-
 type TerminalTab = {
   id: string
   shell: string
@@ -90,8 +87,9 @@ type TerminalTab = {
 }
 
 const terminalTitle = computed(() => {
-  if (shellLabel.value && shellLabel.value !== 'terminal') return shellLabel.value
-  return t('terminal.title')
+  const shell = activeTab.value?.shell
+  if (shell && shell !== 'terminal') return shell
+  return t('Terminal')
 })
 
 type QuickCommand = {
@@ -258,7 +256,7 @@ function handleNotification(notification: RpcNotification): void {
     saveTabsState()
     if (notificationSessionId !== activeSessionId.value) return
     terminal.writeln('')
-    terminal.writeln(t('terminal.exited'))
+    terminal.writeln(t('[terminal exited]'))
     return
   }
   if (notification.method === 'terminal-error') {

@@ -1,12 +1,12 @@
 <template>
   <section class="conversation-root" @contextmenu.capture="onConversationContextMenu">
-    <p v-if="isLoading" class="conversation-loading">{{ $t('conversation.loadingMessages') }}</p>
+    <p v-if="isLoading" class="conversation-loading">{{ $t('Loading messages...') }}</p>
 
     <p
       v-else-if="messages.length === 0 && pendingRequests.length === 0 && !liveOverlay"
       class="conversation-empty"
     >
-      {{ $t('conversation.noMessages') }}
+      {{ $t('No messages in this thread yet.') }}
     </p>
 
     <ul v-else ref="conversationListRef" class="conversation-list" @scroll="onConversationScroll">
@@ -17,7 +17,7 @@
           :disabled="isLoadingMore"
           @click="loadMoreAbove"
         >
-          {{ isLoadingMore ? $t('conversation.loadingEarlier') : $t('conversation.loadEarlier') }}
+          {{ isLoadingMore ? $t('Loading\u2026') : $t('Load earlier messages') }}
         </button>
       </li>
       <template v-for="message in visibleMessages" :key="message.id">
@@ -32,8 +32,8 @@
           <div class="message-stack" data-role="system">
             <button type="button" class="cmd-row cmd-compact cmd-completed" :class="{ 'cmd-expanded': expandedReasoningIds.has(message.id) }" @click="toggleReasoningExpand(message)">
               <span class="cmd-chevron" :class="{ 'cmd-chevron-open': expandedReasoningIds.has(message.id) }">▶</span>
-              <code class="cmd-label">{{ $t('composer.thinking') }}</code>
-              <span class="cmd-status">{{ $t('conversation.cmdDone') }}{{ message.durationMs != null ? ` (${(message.durationMs / 1000).toFixed(1)}s)` : '' }}</span>
+              <code class="cmd-label">{{ $t('Thinking') }}</code>
+              <span class="cmd-status">{{ $t('Done') }}{{ message.durationMs != null ? ` (${(message.durationMs / 1000).toFixed(1)}s)` : '' }}</span>
             </button>
             <div class="cmd-output-wrap" :class="{ 'cmd-output-visible': expandedReasoningIds.has(message.id) }">
               <div class="cmd-output-inner">
@@ -94,7 +94,7 @@
                     @click="toggleCommandExpand(cmd)"
                   >
                     <span class="cmd-chevron" :class="{ 'cmd-chevron-open': isCommandExpanded(cmd) }">▶</span>
-                    <code class="cmd-label">{{ cmd.commandExecution?.command || $t('conversation.command') }}</code>
+                    <code class="cmd-label">{{ cmd.commandExecution?.command || $t('(command)') }}</code>
                     <span class="cmd-status">{{ commandStatusLabel(cmd) }}</span>
                   </button>
                   <div
@@ -105,7 +105,7 @@
                       <pre
                         class="cmd-output"
                         :class="{ 'cmd-output-condensed': isCommandOutputCondensed(cmd) }"
-                        v-text="cmd.commandExecution?.aggregatedOutput || $t('conversation.noOutput')"
+                        v-text="cmd.commandExecution?.aggregatedOutput || $t('(no output)')"
                       ></pre>
                     </div>
                   </div>
@@ -126,7 +126,7 @@
                 @click="toggleCommandExpand(message)"
               >
                 <span class="cmd-chevron" :class="{ 'cmd-chevron-open': isCommandExpanded(message) }">▶</span>
-                <code class="cmd-label">{{ message.commandExecution?.command || $t('conversation.command') }}</code>
+                <code class="cmd-label">{{ message.commandExecution?.command || $t('(command)') }}</code>
                 <span class="cmd-status">{{ commandStatusLabel(message) }}</span>
               </button>
               <div
@@ -137,7 +137,7 @@
                   <pre
                     class="cmd-output"
                     :class="{ 'cmd-output-condensed': isCommandOutputCondensed(message) }"
-                    v-text="message.commandExecution?.aggregatedOutput || $t('conversation.noOutput')"
+                    v-text="message.commandExecution?.aggregatedOutput || $t('(no output)')"
                   ></pre>
                 </div>
               </div>
@@ -238,7 +238,7 @@
                       class="message-image-preview"
                       :class="{ 'message-generated-image-preview': message.messageType === 'imageView' }"
                       :src="imageUrl"
-                      :alt="message.messageType === 'imageView' ? $t('conversation.generatedImage') : $t('conversation.imagePreview')"
+                      :alt="message.messageType === 'imageView' ? $t('Generated image') : $t('Message image preview')"
                       loading="lazy"
                     />
                   </button>
@@ -287,7 +287,7 @@
                         @click="toggleCommandExpand(cmd)"
                       >
                         <span class="cmd-chevron" :class="{ 'cmd-chevron-open': isCommandExpanded(cmd) }">▶</span>
-                        <code class="cmd-label">{{ cmd.commandExecution?.command || $t('conversation.command') }}</code>
+                        <code class="cmd-label">{{ cmd.commandExecution?.command || $t('(command)') }}</code>
                         <span class="cmd-status">{{ commandStatusLabel(cmd) }}</span>
                       </button>
                       <div
@@ -298,7 +298,7 @@
                           <pre
                             class="cmd-output"
                             :class="{ 'cmd-output-condensed': isCommandOutputCondensed(cmd) }"
-                            v-text="cmd.commandExecution?.aggregatedOutput || $t('conversation.noOutput')"
+                            v-text="cmd.commandExecution?.aggregatedOutput || $t('(no output)')"
                           ></pre>
                         </div>
                       </div>
@@ -307,8 +307,8 @@
                 </div>
                 <div v-else-if="isPlanMessage(message)" class="plan-card" :data-streaming="message.messageType === 'plan.live'">
                   <div class="plan-card-header">
-                    <p class="plan-card-title">{{ $t('conversation.plan') }}</p>
-                    <span v-if="message.messageType === 'plan.live'" class="plan-card-badge">{{ $t('conversation.planUpdating') }}</span>
+                    <p class="plan-card-title">{{ $t('Plan') }}</p>
+                    <span v-if="message.messageType === 'plan.live'" class="plan-card-badge">{{ $t('Updating') }}</span>
                   </div>
                   <div
                     v-if="readPlanExplanation(message)"
@@ -565,7 +565,7 @@
                       <img
                         class="message-image-preview message-markdown-image"
                         :src="block.url"
-                        :alt="block.alt || $t('conversation.embeddedImage')"
+                        :alt="block.alt || $t('Embedded message image')"
                         loading="lazy"
                         @error="onMarkdownImageError(message.id, blockIndex)"
                       />
@@ -650,19 +650,19 @@
                   v-if="showEditMessageButton(message)"
                   type="button"
                   class="message-edit-button"
-                  :aria-label="$t('conversation.editMessage')"
-                  :title="$t('conversation.editMessage')"
+                  :aria-label="$t('Edit this message')"
+                  :title="$t('Edit this message')"
                   @click="editMessage(message.id)"
                 >
                   <IconTablerFilePencil class="icon-svg message-edit-icon" />
-                  <span class="message-edit-label">{{ $t('conversation.editMessage') }}</span>
+                  <span class="message-edit-label">{{ $t('Edit this message') }}</span>
                 </button>
                 <button
                   v-if="showForkResponseButton(message)"
                   type="button"
                   class="message-fork-button"
-                  :aria-label="$t('conversation.forkThread')"
-                  :title="$t('conversation.forkThread')"
+                  :aria-label="$t('Fork thread from this response')"
+                  :title="$t('Fork thread from this response')"
                   @click="forkResponse(message.id)"
                 >
                   <IconTablerGitFork class="icon-svg message-fork-icon" />
@@ -673,12 +673,12 @@
                   type="button"
                   class="message-copy-button"
                   :data-copied="copiedResponseAnchorId === message.id"
-                  :aria-label="copiedResponseAnchorId === message.id ? $t('conversation.responseCopied') : $t('conversation.copyResponse')"
-                  :title="copiedResponseAnchorId === message.id ? $t('conversation.responseCopied') : $t('conversation.copyResponse')"
+                  :aria-label="copiedResponseAnchorId === message.id ? $t('Response copied') : $t('Copy response')"
+                  :title="copiedResponseAnchorId === message.id ? $t('Response copied') : $t('Copy response')"
                   @click="copyResponse(message.id)"
                 >
                   <IconTablerCopy class="icon-svg message-copy-icon" />
-                  <span class="message-copy-label">{{ copiedResponseAnchorId === message.id ? $t('common.copied') : $t('common.copy') }}</span>
+                  <span class="message-copy-label">{{ copiedResponseAnchorId === message.id ? $t('Copied') : $t('Copy') }}</span>
                 </button>
               </div>
             </article>
@@ -709,8 +709,8 @@
       v-if="showJumpToLatestButton"
       type="button"
       class="jump-to-latest-button"
-      :title="$t('conversation.jumpToLatest')"
-      :aria-label="$t('conversation.jumpToLatestOutput')"
+      :title="$t('Jump to latest')"
+      :aria-label="$t('Jump to latest output')"
       @click="jumpToLatest"
     >
       <IconTablerArrowUp class="icon-svg jump-to-latest-icon" />
@@ -718,10 +718,10 @@
 
     <div v-if="modalImageUrl.length > 0" class="image-modal-backdrop" @click="closeImageModal">
       <div class="image-modal-content" @click.stop>
-        <button class="image-modal-close" type="button" :aria-label="$t('conversation.closeImagePreview')" @click="closeImageModal">
+        <button class="image-modal-close" type="button" :aria-label="$t('Close image preview')" @click="closeImageModal">
           <IconTablerX class="icon-svg" />
         </button>
-        <img class="image-modal-image" :src="modalImageUrl" :alt="$t('conversation.expandedImage')" />
+        <img class="image-modal-image" :src="modalImageUrl" :alt="$t('Expanded message image')" />
       </div>
     </div>
 
@@ -797,7 +797,7 @@
               >
                 {{ formatFileChangeCountLabel(diffViewerChanges.length) }}
               </button>
-              <button class="image-modal-close diff-viewer-close" type="button" :aria-label="$t('conversation.closeDiffViewer')" @click="closeDiffViewer">
+              <button class="image-modal-close diff-viewer-close" type="button" :aria-label="$t('Close diff viewer')" @click="closeDiffViewer">
                 <IconTablerX class="icon-svg" />
               </button>
             </div>
@@ -1122,7 +1122,7 @@ function isCommandGroupExpanded(message: UiMessage): boolean {
 function commandGroupSummaryLabel(message: UiMessage): string {
   const commands = getCommandBlockForLatest(message)
   const count = commands.length
-  const latestCommand = message.commandExecution?.command?.trim() || t('conversation.command')
+  const latestCommand = message.commandExecution?.command?.trim() || t('(command)')
   const countLabel = count === 1 ? '1 command' : `${count} commands`
   return `${countLabel} · latest: ${latestCommand}`
 }
@@ -1150,10 +1150,10 @@ function mcpToolCallStatusLabel(message: UiMessage): string {
   const s = message.mcpToolCall?.status
   const duration = message.mcpToolCall?.durationMs
   const durationStr = duration != null ? ` (${(duration / 1000).toFixed(1)}s)` : ''
-  if (s === 'completed') return t('conversation.cmdDone') + durationStr
-  if (s === 'failed') return t('conversation.cmdFailed')
-  if (s === 'inProgress') return t('conversation.cmdRunning')
-  return t('conversation.cmdDone') + durationStr
+  if (s === 'completed') return t('Done') + durationStr
+  if (s === 'failed') return t('Failed')
+  if (s === 'inProgress') return t('Running')
+  return t('Done') + durationStr
 }
 
 function mcpToolCallOutput(message: UiMessage): string {
@@ -1163,7 +1163,7 @@ function mcpToolCallOutput(message: UiMessage): string {
   if (mcp.arguments) parts.push(mcp.arguments)
   if (mcp.result) parts.push(mcp.result)
   if (mcp.error) parts.push(`Error: ${mcp.error}`)
-  return parts.join('\n\n') || t('conversation.noOutput')
+  return parts.join('\n\n') || t('(no output)')
 }
 
 function toggleReasoningExpand(message: UiMessage): void {
@@ -1233,11 +1233,11 @@ function commandStatusLabel(message: UiMessage): string {
   const compact = isCommandCompact(message)
   const durationStr = ce.durationMs != null ? ` (${(ce.durationMs / 1000).toFixed(1)}s)` : ''
   switch (ce.status) {
-    case 'inProgress': return compact ? t('conversation.cmdRunning') : t('conversation.cmdRunningFull')
-    case 'completed': return ce.exitCode === 0 ? t('conversation.cmdDone') + durationStr : t('conversation.cmdExitCode', { code: ce.exitCode ?? '?' })
-    case 'failed': return compact ? t('conversation.cmdFailed') : t('conversation.cmdFailedFull')
-    case 'declined': return compact ? t('conversation.cmdDeclined') : t('conversation.cmdDeclinedFull')
-    case 'interrupted': return compact ? t('conversation.cmdStopped') : t('conversation.cmdInterrupted')
+    case 'inProgress': return compact ? t('Running') : t('\u27F3 Running')
+    case 'completed': return ce.exitCode === 0 ? t('Done') + durationStr : t('Exit {code}', { code: ce.exitCode ?? '?' })
+    case 'failed': return compact ? t('Failed') : t('\u2717 Failed')
+    case 'declined': return compact ? t('Declined') : t('\u2298 Declined')
+    case 'interrupted': return compact ? t('Stopped') : t('\u2298 Interrupted')
     default: return ''
   }
 }
@@ -1876,11 +1876,11 @@ function readStandaloneFileChangeSummary(message: UiMessage): TurnFileChangeSumm
 
 function fileChangeOperationLabel(change: UiFileChange): string {
   if (change.operation === 'update' && change.movedToPath) {
-    return change.addedLineCount > 0 || change.removedLineCount > 0 ? t('conversation.fileChangeMovedEdited') : t('conversation.fileChangeMoved')
+    return change.addedLineCount > 0 || change.removedLineCount > 0 ? t('Moved + edited') : t('Moved')
   }
-  if (change.operation === 'add') return t('conversation.fileChangeAdded')
-  if (change.operation === 'delete') return t('conversation.fileChangeDeleted')
-  return t('conversation.fileChangeEdited')
+  if (change.operation === 'add') return t('Added')
+  if (change.operation === 'delete') return t('Deleted')
+  return t('Edited')
 }
 
 function fileChangeOperationTone(change: UiFileChange): 'add' | 'delete' | 'update' | 'move' {
@@ -1950,7 +1950,7 @@ function summarizeFileChangeKinds(summary: TurnFileChangeSummary | null): string
 }
 
 function fileChangeSummaryLabel(summary: TurnFileChangeSummary | null): string {
-  if (!summary || summary.changes.length === 0) return t('conversation.fileChangeModified')
+  if (!summary || summary.changes.length === 0) return t('Modified files')
   const countLabel = formatFileChangeCountLabel(summary.changes.length)
   const kindSummary = summarizeFileChangeKinds(summary)
   return kindSummary ? `${countLabel} · ${kindSummary}` : countLabel
@@ -1960,7 +1960,7 @@ function fileChangeSummaryStatusParts(summary: TurnFileChangeSummary | null): Fi
   if (!summary || summary.changes.length === 0) return []
   const totalAdded = summary.changes.reduce((sum, change) => sum + change.addedLineCount, 0)
   const totalRemoved = summary.changes.reduce((sum, change) => sum + change.removedLineCount, 0)
-  const fallbackLabel = summary.changes.some((change) => change.movedToPath) ? t('conversation.fileChangeMoved') : t('conversation.fileChangeReady')
+  const fallbackLabel = summary.changes.some((change) => change.movedToPath) ? t('Moved') : t('Ready')
   return buildFileChangeDeltaParts(totalAdded, totalRemoved, fallbackLabel)
 }
 
@@ -1982,7 +1982,7 @@ function buildFileChangeCopyText(summary: TurnFileChangeSummary | null): string 
     const delta = formatFileChangeDelta(change)
     return `- ${fileChangeOperationLabel(change)}: ${pathLabel}${movedLabel}${delta ? ` (${delta})` : ''}`
   })
-  return `${t('conversation.fileChangeModified')}:\n${lines.join('\n')}`.trim()
+  return `${t('Modified files')}:\n${lines.join('\n')}`.trim()
 }
 
 const diffViewerChanges = computed<UiFileChange[]>(() => activeDiffViewerSummary.value?.changes ?? [])
@@ -3456,7 +3456,7 @@ function renderMessageBlockAsHtml(block: MessageBlock): string {
   if (block.kind === 'thematicBreak') {
     return '<hr class="message-divider">'
   }
-  return `<img class="message-image-preview message-markdown-image" src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || t('conversation.embeddedImage'))}" loading="lazy">`
+  return `<img class="message-image-preview message-markdown-image" src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || t('Embedded message image'))}" loading="lazy">`
 }
 
 function renderMarkdownBlocksAsHtml(text: string): string {
@@ -3487,12 +3487,12 @@ function readRequestReason(request: UiServerRequest): string {
 }
 
 function requestDisplayTitle(request: UiServerRequest): string {
-  if (request.method === 'item/commandExecution/requestApproval') return t('conversation.commandApproval')
-  if (request.method === 'item/fileChange/requestApproval') return t('conversation.fileChangeApproval')
-  if (request.method === 'item/permissions/requestApproval') return t('conversation.permissionsApproval')
-  if (request.method === 'mcpServer/elicitation/request') return t('conversation.mcpServerInput')
-  if (request.method === 'item/tool/requestUserInput') return t('conversation.inputRequired')
-  if (request.method === 'item/tool/call') return t('conversation.toolCallWaiting')
+  if (request.method === 'item/commandExecution/requestApproval') return t('Command approval required')
+  if (request.method === 'item/fileChange/requestApproval') return t('File change approval required')
+  if (request.method === 'item/permissions/requestApproval') return t('Permissions approval required')
+  if (request.method === 'mcpServer/elicitation/request') return t('MCP server input required')
+  if (request.method === 'item/tool/requestUserInput') return t('Input required')
+  if (request.method === 'item/tool/call') return t('Tool call waiting for response')
   return request.method
 }
 
@@ -4355,6 +4355,10 @@ onBeforeUnmount(() => {
 
 .message-toolbar {
   @apply mt-1 self-start flex items-center gap-1 opacity-[0.01] transition-opacity duration-200;
+}
+
+.message-toolbar[data-role='user'] {
+  @apply self-end;
 }
 
 .message-row:hover .message-toolbar {

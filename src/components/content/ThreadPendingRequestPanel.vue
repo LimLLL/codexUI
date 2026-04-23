@@ -40,7 +40,7 @@
                 class="thread-pending-request-inline-control"
                 type="text"
                 :value="approvalFreeformText"
-                :placeholder="$t('pending.declineWithNote')"
+                :placeholder="$t('No, and tell Codex what to do differently')"
                 @focus="onFocusApprovalOther"
                 @input="onApprovalOtherInput"
                 @keydown.enter.prevent="onSubmitApproval(request)"
@@ -48,10 +48,10 @@
             </label>
 
             <button type="button" class="thread-pending-request-secondary" @click="onRespondApproval(request, 'cancel')">
-              {{ $t('common.skip') }}
+              {{ $t('Skip') }}
             </button>
             <button type="button" class="thread-pending-request-primary" @click="onSubmitApproval(request)">
-              {{ $t('common.send') }}
+              {{ $t('Send') }}
             </button>
           </footer>
         </section>
@@ -63,7 +63,7 @@
             <p class="thread-pending-request-eyebrow">{{ requestPanelTitle(request) }}</p>
             <p class="thread-pending-request-title">{{ requestPanelPrompt(request) }}</p>
           </div>
-          <span v-if="(requestCount ?? 0) > 1" class="thread-pending-request-counter">{{ requestCount ?? 0 }} {{ $t('pending.pending') }}</span>
+          <span v-if="(requestCount ?? 0) > 1" class="thread-pending-request-counter">{{ requestCount ?? 0 }} {{ $t('pending') }}</span>
         </header>
 
         <div v-if="requestPreview(request)" class="thread-pending-request-preview">
@@ -72,7 +72,7 @@
 
         <section v-if="request.method === 'mcpServer/elicitation/request'" class="thread-pending-request-user-input">
           <p v-if="readMcpElicitationServerName(request)" class="thread-pending-request-question-description">
-            {{ $t('pending.server') }}: {{ readMcpElicitationServerName(request) }}
+            {{ $t('Server') }}: {{ readMcpElicitationServerName(request) }}
           </p>
 
           <a
@@ -82,7 +82,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            {{ $t('pending.openAuthLink') }}
+            {{ $t('Open authorization link') }}
           </a>
 
           <div
@@ -96,7 +96,7 @@
             <p v-if="field.description" class="thread-pending-request-question-text">{{ field.description }}</p>
 
             <label v-if="field.kind === 'string' || field.kind === 'number'" class="thread-pending-request-input-wrap">
-              <span class="thread-pending-request-select-label">{{ $t('pending.value') }}</span>
+              <span class="thread-pending-request-select-label">{{ $t('Value') }}</span>
               <input
                 class="thread-pending-request-input"
                 :type="field.inputType"
@@ -106,26 +106,26 @@
             </label>
 
             <label v-else-if="field.kind === 'boolean'" class="thread-pending-request-select-wrap">
-              <span class="thread-pending-request-select-label">{{ $t('pending.choice') }}</span>
+              <span class="thread-pending-request-select-label">{{ $t('Choice') }}</span>
               <select
                 class="thread-pending-request-select"
                 :value="serializeMcpBooleanValue(readMcpElicitationFieldValue(request.id, field))"
                 @change="onMcpElicitationBooleanChange(request.id, field, $event)"
               >
-                <option v-if="!field.hasExplicitDefault" value="">{{ $t('pending.selectTrueOrFalse') }}</option>
-                <option value="true">{{ $t('pending.true_') }}</option>
-                <option value="false">{{ $t('pending.false_') }}</option>
+                <option v-if="!field.hasExplicitDefault" value="">{{ $t('Select true or false') }}</option>
+                <option value="true">{{ $t('True') }}</option>
+                <option value="false">{{ $t('False') }}</option>
               </select>
             </label>
 
             <label v-else-if="field.kind === 'singleEnum'" class="thread-pending-request-select-wrap">
-              <span class="thread-pending-request-select-label">{{ $t('pending.choice') }}</span>
+              <span class="thread-pending-request-select-label">{{ $t('Choice') }}</span>
               <select
                 class="thread-pending-request-select"
                 :value="String(readMcpElicitationFieldValue(request.id, field) ?? '')"
                 @change="onMcpElicitationFieldInput(request.id, field, $event)"
               >
-                <option v-if="!field.hasExplicitDefault" value="">{{ $t('pending.selectAnOption') }}</option>
+                <option v-if="!field.hasExplicitDefault" value="">{{ $t('Select an option') }}</option>
                 <option
                   v-for="option in field.options"
                   :key="`${request.id}:${field.key}:${option.value}`"
@@ -159,13 +159,13 @@
 
           <footer class="thread-pending-request-footer">
             <button type="button" class="thread-pending-request-secondary" @click="onRespondMcpElicitation(request, 'cancel')">
-              {{ $t('common.cancel') }}
+              {{ $t('Cancel') }}
             </button>
             <button type="button" class="thread-pending-request-secondary" @click="onRespondMcpElicitation(request, 'decline')">
-              {{ $t('pending.decline') }}
+              {{ $t('Decline') }}
             </button>
             <button type="button" class="thread-pending-request-primary" @click="onRespondMcpElicitation(request, 'accept')">
-              {{ $t('pending.continue_') }}
+              {{ $t('Continue') }}
             </button>
           </footer>
         </section>
@@ -181,7 +181,7 @@
 
             <div v-if="question.options.length > 0" class="thread-pending-request-question-options">
               <label class="thread-pending-request-select-wrap">
-                <span class="thread-pending-request-select-label">{{ $t('pending.choice') }}</span>
+                <span class="thread-pending-request-select-label">{{ $t('Choice') }}</span>
                 <select
                   class="thread-pending-request-select"
                   :value="readQuestionAnswer(request.id, question.id, question.options[0]?.label || '')"
@@ -206,12 +206,12 @@
             </div>
 
             <label v-if="question.isOther" class="thread-pending-request-input-wrap">
-              <span class="thread-pending-request-select-label">{{ $t('pending.otherAnswer') }}</span>
+              <span class="thread-pending-request-select-label">{{ $t('Other answer') }}</span>
               <input
                 class="thread-pending-request-input"
                 type="text"
                 :value="readQuestionOtherAnswer(request.id, question.id)"
-                :placeholder="$t('pending.otherAnswer')"
+                :placeholder="$t('Other answer')"
                 @input="onQuestionOtherAnswerInput(request.id, question.id, $event)"
               />
             </label>
@@ -219,26 +219,26 @@
 
           <footer class="thread-pending-request-footer">
             <button type="button" class="thread-pending-request-primary" @click="onRespondToolRequestUserInput(request)">
-              {{ $t('common.send') }}
+              {{ $t('Send') }}
             </button>
           </footer>
         </section>
 
         <section v-else-if="request.method === 'item/tool/call'" class="thread-pending-request-actions">
           <button type="button" class="thread-pending-request-primary" @click="onRespondToolCallFailure(request)">
-            {{ $t('pending.failToolCall') }}
+            {{ $t('Fail Tool Call') }}
           </button>
           <button type="button" class="thread-pending-request-secondary" @click="onRespondToolCallSuccess(request)">
-            {{ $t('pending.successEmpty') }}
+            {{ $t('Success (Empty)') }}
           </button>
         </section>
 
         <section v-else class="thread-pending-request-actions">
           <button type="button" class="thread-pending-request-primary" @click="onRespondEmptyResult(request)">
-            {{ $t('pending.returnEmptyResult') }}
+            {{ $t('Return Empty Result') }}
           </button>
           <button type="button" class="thread-pending-request-secondary" @click="onRejectUnknownRequest(request)">
-            {{ $t('pending.rejectRequest') }}
+            {{ $t('Reject Request') }}
           </button>
         </section>
       </template>
@@ -250,8 +250,6 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UiServerRequest, UiServerRequestReply } from '../../types/codex'
-import { useUiLanguage } from '../../composables/useUiLanguage'
-
 type ApprovalDecision = 'accept' | 'acceptForSession' | 'decline' | 'cancel'
 
 type ApprovalOption = {
@@ -301,8 +299,6 @@ const toolQuestionAnswers = ref<Record<string, string>>({})
 const toolQuestionOtherAnswers = ref<Record<string, string>>({})
 const mcpElicitationAnswers = ref<Record<string, string | number | boolean | string[] | null>>({})
 const mcpElicitationValidationError = ref('')
-const { t } = useUiLanguage()
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -368,22 +364,22 @@ function readRequestReason(request: UiServerRequest): string {
 }
 
 function requestPanelTitle(request: UiServerRequest): string {
-  if (isApprovalRequest(request)) return t('pending.awaitingApproval')
-  if (isMcpElicitationRequest(request)) return t('pending.mcpServerInput')
-  if (request.method === 'item/tool/requestUserInput') return t('pending.awaitingResponse')
-  if (request.method === 'item/tool/call') return t('pending.toolCallWaiting')
+  if (isApprovalRequest(request)) return t('Awaiting approval')
+  if (isMcpElicitationRequest(request)) return t('MCP server input required')
+  if (request.method === 'item/tool/requestUserInput') return t('Awaiting response')
+  if (request.method === 'item/tool/call') return t('Tool call waiting for response')
   return request.method
 }
 
 function requestPanelPrompt(request: UiServerRequest): string {
   const explicit = readRequestReason(request)
   if (explicit) return explicit
-  if (isCommandApprovalRequest(request)) return t('pending.runCommand')
-  if (isFileApprovalRequest(request)) return t('pending.makeChanges')
-  if (isPermissionsApprovalRequest(request)) return t('pending.grantPermissions')
-  if (isMcpElicitationRequest(request)) return t('pending.mcpInputNeeded')
-  if (request.method === 'item/tool/requestUserInput') return t('pending.codexNeedsAnswer')
-  return t('pending.codexWaiting')
+  if (isCommandApprovalRequest(request)) return t('Do you want to run this command?')
+  if (isFileApprovalRequest(request)) return t('Do you want to make these changes?')
+  if (isPermissionsApprovalRequest(request)) return t('Do you want to grant these permissions?')
+  if (isMcpElicitationRequest(request)) return t('An MCP server needs your input before Codex can continue.')
+  if (request.method === 'item/tool/requestUserInput') return t('Codex needs your answer before it can continue.')
+  return t('Codex is waiting for a response before it can continue.')
 }
 
 function unwrapApprovalCommand(value: string): string {
@@ -454,8 +450,8 @@ function formatPermissionsPreview(value: unknown): string {
 function approvalOptionsForRequest(request: UiServerRequest | null): ApprovalOption[] {
   if (!request || !isApprovalRequest(request)) return []
   return [
-    { id: 'accept', label: t('pending.yesApprove') },
-    { id: 'acceptForSession', label: t('pending.yesForSession') },
+    { id: 'accept', label: t('Yes') },
+    { id: 'acceptForSession', label: t('Yes for Session') },
   ]
 }
 

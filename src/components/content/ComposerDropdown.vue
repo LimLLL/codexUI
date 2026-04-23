@@ -93,8 +93,8 @@ const enableSearch = computed(() => props.enableSearch === true)
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const searchPlaceholderText = computed(() => props.searchPlaceholder?.trim() || t('composer.searchQuickProjects'))
-const emptyText = computed(() => props.emptyLabel?.trim() || t('common.noResults'))
+const searchPlaceholderText = computed(() => props.searchPlaceholder?.trim() || t('Quick search projects'))
+const emptyText = computed(() => props.emptyLabel?.trim() || t('No results'))
 const filteredOptions = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return props.options

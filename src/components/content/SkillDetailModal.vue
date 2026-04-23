@@ -14,7 +14,7 @@
             <div class="sdm-title-col">
               <div class="sdm-title-row">
                 <h3 class="sdm-title">{{ skill.displayName || skill.name }}</h3>
-                <span v-if="skill.installed && !effectiveEnabled" class="sdm-badge-disabled">{{ $t('skills.disabled') }}</span>
+                <span v-if="skill.installed && !effectiveEnabled" class="sdm-badge-disabled">{{ $t('Disabled') }}</span>
               </div>
               <span class="sdm-owner">{{ skill.owner }}</span>
             </div>
@@ -27,10 +27,10 @@
         <div class="sdm-body">
           <p v-if="effectiveDescription" class="sdm-desc">{{ effectiveDescription }}</p>
 
-          <div v-if="isLoadingReadme" class="sdm-readme-loading">{{ $t('skills.loadingContents') }}</div>
+          <div v-if="isLoadingReadme" class="sdm-readme-loading">{{ $t('Loading skill contents...') }}</div>
           <div v-else-if="readmeContent" class="sdm-readme" v-html="renderedReadme"></div>
 
-          <a class="sdm-link" :href="skill.url" target="_blank" rel="noopener noreferrer">{{ $t('skills.viewOnGithub') }}</a>
+          <a class="sdm-link" :href="skill.url" target="_blank" rel="noopener noreferrer">{{ $t('View on GitHub') }}</a>
         </div>
 
         <div class="sdm-footer">
@@ -42,7 +42,7 @@
               :disabled="isActing"
               @click="onUninstall"
             >
-              {{ props.isUninstalling ? $t('skills.uninstalling') : $t('skills.uninstall') }}
+              {{ props.isUninstalling ? $t('Uninstalling...') : $t('Uninstall') }}
             </button>
             <button
               v-else
@@ -51,7 +51,7 @@
               :disabled="isActing"
               @click="onInstall"
             >
-              {{ props.isInstalling ? $t('skills.installing') : $t('skills.install') }}
+              {{ props.isInstalling ? $t('Installing...') : $t('Install') }}
             </button>
 
             <button
@@ -61,7 +61,7 @@
               :disabled="isActing"
               @click="onToggleEnabled"
             >
-              {{ effectiveEnabled ? $t('skills.disable') : $t('skills.enable') }}
+              {{ effectiveEnabled ? $t('Disable') : $t('Enable') }}
             </button>
 
             <button
@@ -80,7 +80,7 @@
               type="button"
               @click="onBrowseFiles"
             >
-              {{ $t('skills.browseFiles') }}
+              {{ $t('Browse files') }}
             </button>
           </div>
         </div>
@@ -91,7 +91,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useUiLanguage } from '../../composables/useUiLanguage'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 import IconTablerX from '../icons/IconTablerX.vue'
 
 export type HubSkill = {
@@ -126,8 +128,6 @@ const localEnabled = ref<boolean | null>(null)
 const localDescription = ref('')
 const readmeContent = ref('')
 const isLoadingReadme = ref(false)
-const { t } = useUiLanguage()
-
 const effectiveEnabled = computed(() => localEnabled.value ?? props.skill.enabled ?? true)
 const isActing = computed(() => (props.isInstalling === true) || (props.isUninstalling === true))
 const effectiveDescription = computed(() => localDescription.value || props.skill.description)

@@ -2,7 +2,7 @@
   <div class="fm-root">
     <!-- Toolbar -->
     <div class="fm-toolbar">
-      <button class="fm-toolbar-btn" type="button" :disabled="!parentPath" @click="navigateUp" :title="$t('fileManager.goUp')">
+      <button class="fm-toolbar-btn" type="button" :disabled="!parentPath" @click="navigateUp" :title="$t('Go up one level')">
         <IconTablerChevronLeft class="fm-toolbar-icon" />
       </button>
       <div class="fm-breadcrumb" :title="currentPath">
@@ -12,10 +12,10 @@
         </template>
       </div>
       <div class="fm-toolbar-actions">
-        <button class="fm-toolbar-btn" type="button" @click="onRefresh" :title="$t('common.refresh')">↻</button>
-        <button class="fm-toolbar-btn" type="button" @click.stop="showNewMenu = !showNewMenu" :title="$t('fileManager.newItem')">+</button>
-        <button class="fm-toolbar-btn" type="button" @click="triggerUpload" :title="$t('fileManager.uploadFiles')">↑</button>
-        <button class="fm-toolbar-btn" type="button" @click="triggerFolderUpload" :title="$t('fileManager.uploadFolder')">
+        <button class="fm-toolbar-btn" type="button" @click="onRefresh" :title="$t('Refresh')">↻</button>
+        <button class="fm-toolbar-btn" type="button" @click.stop="showNewMenu = !showNewMenu" :title="$t('New file or folder')">+</button>
+        <button class="fm-toolbar-btn" type="button" @click="triggerUpload" :title="$t('Upload files')">↑</button>
+        <button class="fm-toolbar-btn" type="button" @click="triggerFolderUpload" :title="$t('Upload folder')">
           <IconFolder class="fm-toolbar-icon" />
         </button>
       </div>
@@ -23,8 +23,8 @@
 
     <!-- New item menu -->
     <div v-if="showNewMenu" class="fm-new-menu" @click.stop>
-      <button class="fm-new-menu-item" type="button" @click="startCreateFile">{{ $t('fileManager.newFile') }}</button>
-      <button class="fm-new-menu-item" type="button" @click="startCreateFolder">{{ $t('fileManager.newFolder') }}</button>
+      <button class="fm-new-menu-item" type="button" @click="startCreateFile">{{ $t('New file') }}</button>
+      <button class="fm-new-menu-item" type="button" @click="startCreateFolder">{{ $t('New folder') }}</button>
     </div>
 
     <!-- Inline create input -->
@@ -35,7 +35,7 @@
         v-model="createName"
         class="fm-create-input"
         type="text"
-        :placeholder="createMode === 'file' ? $t('fileManager.fileNamePlaceholder') : $t('fileManager.folderNamePlaceholder')"
+        :placeholder="createMode === 'file' ? $t('File name...') : $t('Folder name...')"
         @keydown.enter="confirmCreate"
         @keydown.escape="cancelCreate"
       />
@@ -44,13 +44,13 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="fm-loading">{{ $t('common.loading') }}...</div>
+    <div v-if="isLoading" class="fm-loading">{{ $t('Loading') }}...</div>
 
     <!-- Error -->
     <div v-if="error" class="fm-error">{{ error }}</div>
 
     <!-- Empty -->
-    <div v-if="!isLoading && !error && entries.length === 0" class="fm-empty">{{ $t('fileManager.emptyFolder') }}</div>
+    <div v-if="!isLoading && !error && entries.length === 0" class="fm-empty">{{ $t('Empty folder') }}</div>
 
     <!-- File list -->
     <div v-if="!isLoading && entries.length > 0" class="fm-list">
@@ -90,16 +90,16 @@
         @click.stop
       >
         <button v-if="!contextMenu.entry.isDirectory" class="fm-context-item" type="button" @click="previewFromContext(contextMenu.entry)">
-          {{ $t('filePreview.preview') }}
+          {{ $t('Preview') }}
         </button>
         <button v-if="!contextMenu.entry.isDirectory" class="fm-context-item" type="button" @click="downloadEntry(contextMenu.entry)">
-          {{ $t('fileManager.download') }}
+          {{ $t('Download') }}
         </button>
         <button class="fm-context-item" type="button" @click="startRename(contextMenu.entry)">
-          {{ $t('home.rename') }}
+          {{ $t('Rename') }}
         </button>
         <button class="fm-context-item fm-context-item-danger" type="button" @click="deleteEntry(contextMenu.entry)">
-          {{ $t('home.delete') }}
+          {{ $t('Delete') }}
         </button>
       </div>
     </Teleport>
@@ -189,11 +189,11 @@ async function extractApiError(resp: Response, fallbackKey: string): Promise<str
     const data = (await resp.json()) as { error?: string }
     if (data.error?.trim()) {
       // Map known server errors to i18n
-      if (data.error.includes('outside allowed workspace')) return t('fileManager.outsideWorkspace')
-      if (data.error.includes('absolute')) return t('fileManager.invalidPath')
-      if (data.error.includes('not a directory')) return t('fileManager.notADirectory')
-      if (data.error.includes('not a file')) return t('fileManager.notAFile')
-      if (data.error.includes('not found')) return t('fileManager.notFound')
+      if (data.error.includes('outside allowed workspace')) return t('Path is outside the allowed workspace.')
+      if (data.error.includes('absolute')) return t('Invalid path.')
+      if (data.error.includes('not a directory')) return t('Path is not a directory.')
+      if (data.error.includes('not a file')) return t('Path is not a file.')
+      if (data.error.includes('not found')) return t('File or folder not found.')
       return data.error
     }
   } catch { /* ignore parse failure */ }
@@ -279,7 +279,7 @@ async function fetchEntries(dirPath: string): Promise<void> {
     parentPath.value = data.parentPath
     entries.value = data.entries
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('fileManager.loadError')
+    error.value = err instanceof Error ? err.message : t('Failed to load directory.')
     entries.value = []
   } finally {
     isLoading.value = false
@@ -363,7 +363,7 @@ async function confirmCreate(): Promise<void> {
     cancelCreate()
     void fetchEntries(currentPath.value)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('fileManager.createError')
+    error.value = err instanceof Error ? err.message : t('Failed to create item.')
   }
 }
 
@@ -402,7 +402,7 @@ async function confirmRename(entry: FileEntry): Promise<void> {
     cancelRename()
     void fetchEntries(currentPath.value)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('fileManager.renameError')
+    error.value = err instanceof Error ? err.message : t('Failed to rename.')
     cancelRename()
   }
 }
@@ -420,7 +420,7 @@ async function deleteEntry(entry: FileEntry): Promise<void> {
     if (!resp.ok) throw new Error(await extractApiError(resp, 'fileManager.deleteError'))
     void fetchEntries(currentPath.value)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('fileManager.deleteError')
+    error.value = err instanceof Error ? err.message : t('Failed to delete.')
   }
 }
 
@@ -464,7 +464,7 @@ async function uploadFiles(files: FileList): Promise<void> {
     if (!resp.ok) throw new Error(await extractApiError(resp, 'fileManager.uploadError'))
     void fetchEntries(currentPath.value)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('fileManager.uploadError')
+    error.value = err instanceof Error ? err.message : t('Upload failed.')
   }
 }
 

@@ -6,11 +6,11 @@
 
     <div v-if="isOpen" class="thread-type-menu-panel" @click.stop>
       <div class="thread-type-menu-actions">
-        <button class="thread-type-menu-action-button" type="button" @click="emit('show-all')">{{ $t('conversation.showAll') }}</button>
-        <button class="thread-type-menu-action-button" type="button" @click="emit('hide-all')">{{ $t('conversation.hideAll') }}</button>
+        <button class="thread-type-menu-action-button" type="button" @click="emit('show-all')">{{ $t('Show all') }}</button>
+        <button class="thread-type-menu-action-button" type="button" @click="emit('hide-all')">{{ $t('Hide all') }}</button>
       </div>
 
-      <p v-if="types.length === 0" class="thread-type-menu-empty">{{ $t('conversation.noTypesYet') }}</p>
+      <p v-if="types.length === 0" class="thread-type-menu-empty">{{ $t('No types yet') }}</p>
 
       <label v-for="type in types" :key="type" class="thread-type-menu-option">
         <input

@@ -6,16 +6,16 @@
           <span class="fp-filename" :title="entry.path">{{ entry.name }}</span>
           <span v-if="fileSize" class="fp-size">{{ fileSize }}</span>
           <div class="fp-actions">
-            <button type="button" class="fp-action-btn" @click="downloadFile" :title="t('fileManager.download')">
+            <button type="button" class="fp-action-btn" @click="downloadFile" :title="t('Download')">
               <IconDownload class="fp-action-icon" />
             </button>
-            <button type="button" class="fp-action-btn" @click="close" :aria-label="t('common.close')">
+            <button type="button" class="fp-action-btn" @click="close" :aria-label="t('Close')">
               <IconX class="fp-action-icon" />
             </button>
           </div>
         </header>
         <div class="fp-body">
-          <div v-if="isLoading" class="fp-status">{{ t('common.loading') }}…</div>
+          <div v-if="isLoading" class="fp-status">{{ t('Loading') }}…</div>
           <div v-else-if="error" class="fp-error">{{ error }}</div>
 
           <!-- Office HTML preview (sandboxed: scripts allowed but no same-origin access to parent) -->
@@ -23,7 +23,7 @@
 
           <!-- Image -->
           <div v-else-if="previewType === 'image'" class="fp-image-wrap">
-            <img class="fp-image" :src="serveUrl" :alt="entry.name" @error="error = t('filePreview.loadFailed')" />
+            <img class="fp-image" :src="serveUrl" :alt="entry.name" @error="error = t('Failed to load file preview.')" />
           </div>
 
           <!-- PDF -->
@@ -49,9 +49,9 @@
           <pre v-else-if="previewType === 'text'" class="fp-text">{{ textContent }}</pre>
 
           <!-- Unsupported -->
-          <div v-else class="fp-status fp-unsupported">{{ t('filePreview.unsupported') }}</div>
+          <div v-else class="fp-status fp-unsupported">{{ t('Preview is not available for this file type.') }}</div>
         </div>
-        <div v-if="isTruncated" class="fp-truncated">{{ t('filePreview.truncated') }}</div>
+        <div v-if="isTruncated" class="fp-truncated">{{ t('File is too large — showing first 1 MB only.') }}</div>
       </div>
     </div>
   </Teleport>
@@ -151,12 +151,12 @@ const fileSize = computed(() => {
 
 /** Map server error strings to i18n keys. */
 function mapServerError(msg: string): string {
-  if (msg.includes('officecli not found')) return t('filePreview.officeNotInstalled')
-  if (msg.includes('not a file')) return t('fileManager.notAFile')
-  if (msg.includes('not found') || msg.includes('Not found')) return t('fileManager.notFound')
-  if (msg.includes('absolute')) return t('fileManager.invalidPath')
-  if (msg.includes('not supported for preview')) return t('filePreview.unsupported')
-  if (msg.includes('Unexpected') || msg.includes('failed') || msg.includes('Failed')) return t('filePreview.loadFailed')
+  if (msg.includes('officecli not found')) return t('OfficeCLI is not installed. Office file preview requires OfficeCLI.')
+  if (msg.includes('not a file')) return t('Path is not a file.')
+  if (msg.includes('not found') || msg.includes('Not found')) return t('File or folder not found.')
+  if (msg.includes('absolute')) return t('Invalid path.')
+  if (msg.includes('not supported for preview')) return t('Preview is not available for this file type.')
+  if (msg.includes('Unexpected') || msg.includes('failed') || msg.includes('Failed')) return t('Failed to load file preview.')
   return msg
 }
 
@@ -165,7 +165,7 @@ async function fetchText(): Promise<{ content: string; truncated: boolean }> {
   const resp = await fetch(`/codex-api/files/read?path=${encodeURIComponent(props.entry.path)}`)
   if (!resp.ok) {
     const data = await resp.json().catch(() => null) as { error?: string } | null
-    throw new Error(mapServerError(data?.error || t('filePreview.loadFailed')))
+    throw new Error(mapServerError(data?.error || t('Failed to load file preview.')))
   }
   const data = await resp.json() as { content: string; truncated: boolean; size: number }
   fileSizeBytes.value = data.size
@@ -189,7 +189,7 @@ async function loadPreview(): Promise<void> {
       const resp = await fetch(`/codex-api/files/office-preview?path=${encodeURIComponent(props.entry.path)}`)
       if (!resp.ok) {
         const data = await resp.json().catch(() => null) as { error?: string } | null
-        throw new Error(mapServerError(data?.error || t('filePreview.loadFailed')))
+        throw new Error(mapServerError(data?.error || t('Failed to load file preview.')))
       }
       officeHtml.value = await resp.text()
     } else if (type === 'markdown') {
@@ -211,7 +211,7 @@ async function loadPreview(): Promise<void> {
       textContent.value = data.content
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('filePreview.loadFailed')
+    error.value = err instanceof Error ? err.message : t('Failed to load file preview.')
   } finally {
     isLoading.value = false
   }

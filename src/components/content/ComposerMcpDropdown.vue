@@ -16,8 +16,8 @@
       class="mcp-dropdown-menu"
       :class="{ 'mcp-dropdown-menu-up': openDirection === 'up' }"
     >
-      <div v-if="isLoading" class="mcp-dropdown-loading">{{ $t('common.loading') }}...</div>
-      <div v-else-if="servers.length === 0" class="mcp-dropdown-empty">{{ $t('composer.noMcpServers') }}</div>
+      <div v-if="isLoading" class="mcp-dropdown-loading">{{ $t('Loading') }}...</div>
+      <div v-else-if="servers.length === 0" class="mcp-dropdown-empty">{{ $t('No MCP servers configured') }}</div>
       <template v-else>
         <label
           v-for="server in servers"

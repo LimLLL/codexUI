@@ -4,7 +4,7 @@
       <div class="cem-panel">
         <!-- Header -->
         <div class="cem-header">
-          <h3 class="cem-title">{{ $t('settings.configEditor') }}</h3>
+          <h3 class="cem-title">{{ $t('Config Editor') }}</h3>
           <button class="cem-close" type="button" aria-label="Close" @click="$emit('close')">
             <IconTablerX class="cem-close-icon" />
           </button>
@@ -13,7 +13,7 @@
         <!-- Body -->
         <div class="cem-body">
           <template v-if="isLoading">
-            <div class="cem-loading">{{ $t('common.loading') }}</div>
+            <div class="cem-loading">{{ $t('Loading') }}</div>
           </template>
           <template v-else>
             <span v-if="filePath" class="cem-filepath">{{ filePath }}</span>
@@ -34,7 +34,7 @@
           </span>
           <div class="cem-actions">
             <button class="cem-btn cem-btn-secondary" type="button" @click="$emit('close')">
-              {{ $t('common.cancel') }}
+              {{ $t('Cancel') }}
             </button>
             <button
               class="cem-btn cem-btn-primary"
@@ -42,7 +42,7 @@
               :disabled="isSaving || isLoading"
               @click="onSave"
             >
-              {{ isSaving ? $t('settings.saving') : $t('settings.save') }}
+              {{ isSaving ? $t('Saving\u2026') : $t('Save') }}
             </button>
           </div>
         </div>
@@ -106,10 +106,10 @@ async function onSave(): Promise<void> {
     })
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     feedbackOk.value = true
-    feedback.value = t('settings.configSaved')
+    feedback.value = t('Config saved successfully')
   } catch {
     feedbackOk.value = false
-    feedback.value = t('settings.configSaveError')
+    feedback.value = t('Failed to save config')
   } finally {
     isSaving.value = false
   }
