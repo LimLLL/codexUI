@@ -30,10 +30,10 @@
         <!-- Reasoning/thinking block (dev mode only) -->
         <div v-if="message.messageType === 'reasoning'" class="message-row" data-role="system">
           <div class="message-stack" data-role="system">
-            <button type="button" class="cmd-row cmd-compact cmd-status-ok" :class="{ 'cmd-expanded': expandedReasoningIds.has(message.id) }" @click="toggleReasoningExpand(message)">
+            <button type="button" class="cmd-row cmd-compact cmd-completed" :class="{ 'cmd-expanded': expandedReasoningIds.has(message.id) }" @click="toggleReasoningExpand(message)">
               <span class="cmd-chevron" :class="{ 'cmd-chevron-open': expandedReasoningIds.has(message.id) }">▶</span>
               <code class="cmd-label">{{ $t('composer.thinking') }}</code>
-              <span class="cmd-status">{{ $t('conversation.cmdDone') }}</span>
+              <span class="cmd-status">{{ $t('conversation.cmdDone') }}{{ message.durationMs != null ? ` (${(message.durationMs / 1000).toFixed(1)}s)` : '' }}</span>
             </button>
             <div class="cmd-output-wrap" :class="{ 'cmd-output-visible': expandedReasoningIds.has(message.id) }">
               <div class="cmd-output-inner">
@@ -951,6 +951,7 @@ function readPlanData(message: UiMessage): { explanation: string; steps: UiPlanS
 function isMessageVisible(message: UiMessage): boolean {
   if (props.developerMode) {
     // Dev mode: show everything except the "worked" summary bar
+    console.debug('[visibility-dev]', message.messageType, message.id, JSON.stringify(message).slice(0, 200))
     return message.messageType !== 'worked'
   }
   // Clean mode: hide reasoning, mcpToolCall, grouped commands, and grouped file changes
@@ -1230,9 +1231,10 @@ function commandStatusLabel(message: UiMessage): string {
   const ce = message.commandExecution
   if (!ce) return ''
   const compact = isCommandCompact(message)
+  const durationStr = ce.durationMs != null ? ` (${(ce.durationMs / 1000).toFixed(1)}s)` : ''
   switch (ce.status) {
     case 'inProgress': return compact ? t('conversation.cmdRunning') : t('conversation.cmdRunningFull')
-    case 'completed': return ce.exitCode === 0 ? (compact ? t('conversation.cmdDone') : t('conversation.cmdCompleted')) : t('conversation.cmdExitCode', { code: ce.exitCode ?? '?' })
+    case 'completed': return ce.exitCode === 0 ? t('conversation.cmdDone') + durationStr : t('conversation.cmdExitCode', { code: ce.exitCode ?? '?' })
     case 'failed': return compact ? t('conversation.cmdFailed') : t('conversation.cmdFailedFull')
     case 'declined': return compact ? t('conversation.cmdDeclined') : t('conversation.cmdDeclinedFull')
     case 'interrupted': return compact ? t('conversation.cmdStopped') : t('conversation.cmdInterrupted')
@@ -1243,7 +1245,7 @@ function commandStatusLabel(message: UiMessage): string {
 function commandStatusClass(message: UiMessage): string {
   const s = message.commandExecution?.status
   if (s === 'inProgress') return 'cmd-status-running'
-  if (s === 'completed' && message.commandExecution?.exitCode === 0) return 'cmd-status-ok'
+  if (s === 'completed' && message.commandExecution?.exitCode === 0) return 'cmd-completed'
   return 'cmd-status-error'
 }
 

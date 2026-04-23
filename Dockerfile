@@ -17,7 +17,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile && pnpm rebuild node-pty
 
 COPY . .
-RUN pnpm run build
+RUN NODE_ENV=production pnpm run build
 
 
 FROM node:20-bookworm-slim

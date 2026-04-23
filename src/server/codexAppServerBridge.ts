@@ -1006,6 +1006,39 @@ function parseExecCommandOutput(output: string): { exitCode: number | null; wall
   return { exitCode, wallTime, cleanOutput: outputLines.join('\n').trimEnd() }
 }
 
+type SessionRecoveredMcpToolCall = {
+  id: string
+  type: 'mcpToolCall'
+  server: string
+  tool: string
+  status: 'inProgress' | 'completed' | 'failed'
+  arguments: unknown
+  result: unknown
+  error: string
+  durationMs: number | null
+}
+
+function parseSessionStructuredValue(value: unknown): unknown {
+  if (typeof value !== 'string') return value ?? ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return value
+  }
+}
+
+function parseSessionMcpFunctionName(name: unknown): { server: string; tool: string } | null {
+  if (typeof name !== 'string' || !name.startsWith('mcp__')) return null
+  const parts = name.slice('mcp__'.length).split('__').filter(Boolean)
+  if (parts.length < 2) return null
+  const [server, ...toolParts] = parts
+  const tool = toolParts.join('__')
+  if (!server || !tool) return null
+  return { server, tool }
+}
+
 type SessionRecoveredFileChangeItem = {
   id: string
   type: 'fileChange'
@@ -1014,15 +1047,20 @@ type SessionRecoveredFileChangeItem = {
 }
 
 type SessionItemSlot = {
-  type: 'agentMessage' | 'commandExecution' | 'fileChange'
+  type: 'agentMessage' | 'reasoning' | 'commandExecution' | 'mcpToolCall' | 'fileChange'
   command?: SessionRecoveredCommand
+  mcpToolCall?: SessionRecoveredMcpToolCall
   fileChange?: SessionRecoveredFileChangeItem
+  durationMs?: number | null
 }
 
 function buildSessionItemOrder(sessionLogRaw: string, turnIds: Set<string>): Map<string, SessionItemSlot[]> {
   let currentTurnId = ''
   const orderByTurnId = new Map<string, SessionItemSlot[]>()
   const callIdToCommand = new Map<string, SessionRecoveredCommand>()
+  const callIdToMcpToolCall = new Map<string, SessionRecoveredMcpToolCall>()
+  const callIdToTimestamp = new Map<string, number>()
+  let lastResponseItemTs = 0
 
   for (const line of sessionLogRaw.split('\n')) {
     if (!line.trim()) continue
@@ -1033,15 +1071,19 @@ function buildSessionItemOrder(sessionLogRaw: string, turnIds: Set<string>): Map
       continue
     }
 
+    const rowTs = typeof row.timestamp === 'string' ? new Date(row.timestamp as string).getTime() : 0
+
     if (row.type === 'turn_context') {
       const p = asRecord(row.payload)
       currentTurnId = readNonEmptyString(p?.turn_id) || currentTurnId
+      if (rowTs > 0) lastResponseItemTs = rowTs
       continue
     }
     if (row.type === 'event_msg') {
       const p = asRecord(row.payload)
       if (p?.type === 'task_started') {
         currentTurnId = readNonEmptyString(p.turn_id) || currentTurnId
+        if (rowTs > 0) lastResponseItemTs = rowTs
       }
       continue
     }
@@ -1058,43 +1100,95 @@ function buildSessionItemOrder(sessionLogRaw: string, turnIds: Set<string>): Map
 
     if (payload.type === 'message' && payload.role === 'assistant') {
       slots.push({ type: 'agentMessage' })
+      if (rowTs > 0) lastResponseItemTs = rowTs
       continue
     }
 
-    if (payload.type === 'function_call' && payload.name === 'exec_command') {
-      const callId = readNonEmptyString(payload.call_id)
-      if (!callId) continue
-      let cmd = ''
-      try {
-        const args = JSON.parse(payload.arguments as string) as Record<string, unknown>
-        cmd = typeof args.cmd === 'string' ? args.cmd : ''
-      } catch { /* empty */ }
-      const command: SessionRecoveredCommand = {
-        id: `session-cmd-${callId}`,
-        type: 'commandExecution',
-        command: cmd,
-        cwd: null,
-        status: 'completed',
-        aggregatedOutput: '',
-        exitCode: null,
-        durationMs: null,
-      }
-      callIdToCommand.set(callId, command)
-      slots.push({ type: 'commandExecution', command })
+    if (payload.type === 'reasoning') {
+      const durationMs = (rowTs > 0 && lastResponseItemTs > 0 && rowTs > lastResponseItemTs)
+        ? rowTs - lastResponseItemTs
+        : null
+      slots.push({ type: 'reasoning', durationMs })
+      if (rowTs > 0) lastResponseItemTs = rowTs
       continue
+    }
+
+    if (payload.type === 'function_call') {
+      if (payload.name === 'exec_command') {
+        const callId = readNonEmptyString(payload.call_id)
+        if (!callId) continue
+        let cmd = ''
+        try {
+          const args = JSON.parse(payload.arguments as string) as Record<string, unknown>
+          cmd = typeof args.cmd === 'string' ? args.cmd : ''
+        } catch { /* empty */ }
+        const command: SessionRecoveredCommand = {
+          id: `session-cmd-${callId}`,
+          type: 'commandExecution',
+          command: cmd,
+          cwd: null,
+          status: 'completed',
+          aggregatedOutput: '',
+          exitCode: null,
+          durationMs: null,
+        }
+        callIdToCommand.set(callId, command)
+        slots.push({ type: 'commandExecution', command })
+        if (rowTs > 0) lastResponseItemTs = rowTs
+        continue
+      }
+
+      const mcpName = parseSessionMcpFunctionName(payload.name)
+      if (mcpName) {
+        const callId = readNonEmptyString(payload.call_id)
+        if (!callId) continue
+        if (rowTs > 0) callIdToTimestamp.set(callId, rowTs)
+        const mcpToolCall: SessionRecoveredMcpToolCall = {
+          id: `session-mcp-${callId}`,
+          type: 'mcpToolCall',
+          server: mcpName.server,
+          tool: mcpName.tool,
+          status: 'inProgress',
+          arguments: parseSessionStructuredValue(payload.arguments),
+          result: '',
+          error: '',
+          durationMs: null,
+        }
+        callIdToMcpToolCall.set(callId, mcpToolCall)
+        slots.push({ type: 'mcpToolCall', mcpToolCall })
+        if (rowTs > 0) lastResponseItemTs = rowTs
+        continue
+      }
     }
 
     if (payload.type === 'function_call_output') {
       const callId = readNonEmptyString(payload.call_id)
       if (!callId) continue
-      const existing = callIdToCommand.get(callId)
-      if (!existing) continue
-      const rawOutput = typeof payload.output === 'string' ? payload.output : ''
-      const parsed = parseExecCommandOutput(rawOutput)
-      existing.aggregatedOutput = parsed.cleanOutput
-      existing.exitCode = parsed.exitCode
-      existing.durationMs = parsed.wallTime
-      existing.status = parsed.exitCode === 0 || parsed.exitCode === null ? 'completed' : 'failed'
+
+      const existingCommand = callIdToCommand.get(callId)
+      if (existingCommand) {
+        const rawOutput = typeof payload.output === 'string' ? payload.output : ''
+        const parsed = parseExecCommandOutput(rawOutput)
+        existingCommand.aggregatedOutput = parsed.cleanOutput
+        existingCommand.exitCode = parsed.exitCode
+        existingCommand.durationMs = parsed.wallTime
+        existingCommand.status = parsed.exitCode === 0 || parsed.exitCode === null ? 'completed' : 'failed'
+        if (rowTs > 0) lastResponseItemTs = rowTs
+        continue
+      }
+
+      const existingMcpToolCall = callIdToMcpToolCall.get(callId)
+      if (existingMcpToolCall) {
+        existingMcpToolCall.result = parseSessionStructuredValue(payload.output)
+        existingMcpToolCall.error = ''
+        existingMcpToolCall.status = 'completed'
+        const startTs = callIdToTimestamp.get(callId)
+        if (startTs && rowTs > startTs) {
+          existingMcpToolCall.durationMs = rowTs - startTs
+        }
+        if (rowTs > 0) lastResponseItemTs = rowTs
+        continue
+      }
     }
 
     if (payload.type === 'custom_tool_call' && payload.name === 'apply_patch' && payload.status === 'completed') {
@@ -1412,35 +1506,66 @@ function mergeSessionCommandsIntoTurns(turns: unknown[], sessionLogRaw: string):
     if (!slots || slots.length === 0) return turn
 
     const existingItems = Array.isArray(turnRecord.items) ? (turnRecord.items as Record<string, unknown>[]) : []
-    const alreadyHasRecoveredItems = existingItems.some((it) => it.type === 'commandExecution' || it.type === 'fileChange')
-    if (alreadyHasRecoveredItems) return turn
+    const indexedItems = existingItems.map((item, index) => ({ item, index }))
+    const userMessages = indexedItems.filter(({ item }) => item.type === 'userMessage')
+    const agentMessages = indexedItems.filter(({ item }) => item.type === 'agentMessage')
+    const reasoningItems = indexedItems.filter(({ item }) => item.type === 'reasoning')
+    const commandExecutions = indexedItems.filter(({ item }) => item.type === 'commandExecution')
+    const mcpToolCalls = indexedItems.filter(({ item }) => item.type === 'mcpToolCall')
+    const fileChanges = indexedItems.filter(({ item }) => item.type === 'fileChange')
 
-    const agentMessages = existingItems.filter((it) => it.type === 'agentMessage')
-    const nonAgentNonUserItems = existingItems.filter((it) => it.type !== 'agentMessage' && it.type !== 'userMessage')
-    const userMessages = existingItems.filter((it) => it.type === 'userMessage')
+    const consumedIndices = new Set<number>(userMessages.map(({ index }) => index))
+    const interleaved: Record<string, unknown>[] = userMessages.map(({ item }) => item)
 
-    let agentIdx = 0
-    const interleaved: Record<string, unknown>[] = [...userMessages]
+    const shiftExistingItem = (
+      queue: Array<{ item: Record<string, unknown>; index: number }>,
+    ): Record<string, unknown> | null => {
+      const nextItem = queue.shift()
+      if (!nextItem) return null
+      consumedIndices.add(nextItem.index)
+      return nextItem.item
+    }
 
     for (const slot of slots) {
       if (slot.type === 'agentMessage') {
-        if (agentIdx < agentMessages.length) {
-          interleaved.push(agentMessages[agentIdx]!)
-          agentIdx++
+        const existingAgentMessage = shiftExistingItem(agentMessages)
+        if (existingAgentMessage) interleaved.push(existingAgentMessage)
+      } else if (slot.type === 'reasoning') {
+        const existingReasoning = shiftExistingItem(reasoningItems)
+        if (existingReasoning) {
+          if (slot.durationMs != null && existingReasoning.durationMs == null) {
+            existingReasoning.durationMs = slot.durationMs
+          }
+          interleaved.push(existingReasoning)
         }
       } else if (slot.type === 'commandExecution' && slot.command) {
-        interleaved.push(slot.command as unknown as Record<string, unknown>)
+        const existingCommand = shiftExistingItem(commandExecutions)
+        if (existingCommand) {
+          interleaved.push(existingCommand)
+        } else {
+          interleaved.push(slot.command as unknown as Record<string, unknown>)
+        }
+      } else if (slot.type === 'mcpToolCall' && slot.mcpToolCall) {
+        const existingMcpToolCall = shiftExistingItem(mcpToolCalls)
+        if (existingMcpToolCall) {
+          interleaved.push(existingMcpToolCall)
+        } else {
+          interleaved.push(slot.mcpToolCall as unknown as Record<string, unknown>)
+        }
       } else if (slot.type === 'fileChange' && slot.fileChange) {
-        interleaved.push(slot.fileChange as unknown as Record<string, unknown>)
+        const existingFileChange = shiftExistingItem(fileChanges)
+        if (existingFileChange) {
+          interleaved.push(existingFileChange)
+        } else {
+          interleaved.push(slot.fileChange as unknown as Record<string, unknown>)
+        }
       }
     }
 
-    while (agentIdx < agentMessages.length) {
-      interleaved.push(agentMessages[agentIdx]!)
-      agentIdx++
+    for (const { item, index } of indexedItems) {
+      if (consumedIndices.has(index) || item.type === 'userMessage') continue
+      interleaved.push(item)
     }
-
-    interleaved.push(...nonAgentNonUserItems)
 
     return {
       ...turnRecord,
@@ -2464,6 +2589,7 @@ type CapturedItem = {
 const MERGEABLE_ITEM_TYPES = new Set([
   'commandExecution',
   'fileChange',
+  'mcpToolCall',
 ])
 
 class AppServerProcess {
@@ -3621,13 +3747,34 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
 
         const rpcResult = await appServer.rpc(body.method, body.params ?? null)
         const trimmedResult = trimThreadTurnsInRpcResult(body.method, rpcResult)
-        const result = await sanitizeThreadTurnsInlinePayloads(body.method, trimmedResult)
+        let result = await sanitizeThreadTurnsInlinePayloads(body.method, trimmedResult)
 
         if (THREAD_METHODS_WITH_TURNS.has(body.method)) {
           const rpcRecord = asRecord(result)
           const rpcThread = asRecord(rpcRecord?.thread)
           const rpcThreadId = typeof rpcThread?.id === 'string' ? rpcThread.id : ''
           if (rpcThreadId) {
+            const rawTurns = Array.isArray(rpcThread?.turns) ? rpcThread.turns : []
+            let mergedTurns = appServer.mergeItemsIntoTurns(rpcThreadId, rawTurns)
+
+            const sessionPath = readNonEmptyString(rpcThread?.path)
+            if (sessionPath && isAbsolute(sessionPath)) {
+              try {
+                const sessionLogRaw = await readFile(sessionPath, 'utf8')
+                mergedTurns = mergeSessionCommandsIntoTurns(mergedTurns, sessionLogRaw)
+              } catch {
+                // Session log not available - continue without recovery
+              }
+            }
+
+            result = {
+              ...rpcRecord,
+              thread: {
+                ...rpcThread,
+                turns: mergedTurns,
+              },
+            }
+
             appServer.storeThreadReadSnapshot(rpcThreadId, result)
           }
         }

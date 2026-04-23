@@ -103,6 +103,9 @@ function resolveViteRollbackDebugFallback(): string {
 const viteRollbackDebugFallback = resolveViteRollbackDebugFallback();
 
 export default defineConfig({
+  esbuild: {
+    pure: process.env.NODE_ENV === 'production' ? ['console.debug'] : [],
+  },
   define: {
     "import.meta.env.VITE_WORKTREE_NAME": JSON.stringify(worktreeName),
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

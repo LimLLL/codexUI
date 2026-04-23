@@ -97,6 +97,7 @@ export type CommandExecutionData = {
   status: 'inProgress' | 'completed' | 'failed' | 'declined' | 'interrupted'
   aggregatedOutput: string
   exitCode: number | null
+  durationMs: number | null
 }
 
 export type McpToolCallData = {
@@ -224,6 +225,7 @@ export type UiMessage = {
   isUnhandled?: boolean
   commandExecution?: CommandExecutionData
   mcpToolCall?: McpToolCallData
+  durationMs?: number | null
   plan?: UiPlanData
   turnId?: string
   turnIndex?: number

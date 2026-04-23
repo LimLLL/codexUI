@@ -468,12 +468,14 @@ function toUiMessages(item: ThreadItem): UiMessage[] {
     const raw = item as Record<string, unknown>
     const summary = Array.isArray(raw.summary) ? (raw.summary as string[]).join('\n') : (typeof raw.text === 'string' ? raw.text as string : '')
     if (!summary) return []
+    const durationMs = typeof raw.durationMs === 'number' ? raw.durationMs : null
     return [
       {
         id: item.id,
         role: 'assistant' as const,
         text: summary,
         messageType: 'reasoning',
+        ...(durationMs != null ? { durationMs } : {}),
       },
     ]
   }
@@ -499,13 +501,14 @@ function toUiMessages(item: ThreadItem): UiMessage[] {
     const cwd = typeof raw.cwd === 'string' ? raw.cwd : null
     const aggregatedOutput = typeof raw.aggregatedOutput === 'string' ? raw.aggregatedOutput : ''
     const exitCode = typeof raw.exitCode === 'number' ? raw.exitCode : null
+    const durationMs = typeof raw.durationMs === 'number' ? raw.durationMs : null
     return [
       {
         id: item.id,
         role: 'system' as const,
         text: cmd,
         messageType: 'commandExecution',
-        commandExecution: { command: cmd, cwd, status, aggregatedOutput, exitCode },
+        commandExecution: { command: cmd, cwd, status, aggregatedOutput, exitCode, durationMs },
       },
     ]
   }

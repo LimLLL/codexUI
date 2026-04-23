@@ -3067,7 +3067,7 @@ export function useDesktopState() {
       role: 'system',
       text: command,
       messageType: 'commandExecution',
-      commandExecution: { command, cwd, status: 'inProgress', aggregatedOutput: '', exitCode: null },
+      commandExecution: { command, cwd, status: 'inProgress', aggregatedOutput: '', exitCode: null, durationMs: null },
       turnId: turnId || undefined,
       turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
     }
@@ -3107,7 +3107,7 @@ export function useDesktopState() {
       role: 'system',
       text: command,
       messageType: 'commandExecution',
-      commandExecution: { command, cwd, status, aggregatedOutput, exitCode },
+      commandExecution: { command, cwd, status, aggregatedOutput, exitCode, durationMs: null },
       turnId: turnId || undefined,
       turnIndex: typeof turnIndex === 'number' ? turnIndex : undefined,
     }
