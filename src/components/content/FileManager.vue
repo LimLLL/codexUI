@@ -154,6 +154,9 @@ import {
   IconBrandPython,
   IconSettings,
   IconFileZip,
+  IconFileTypeDocx,
+  IconFileSpreadsheet,
+  IconPresentation,
 } from '@tabler/icons-vue'
 import IconTablerChevronLeft from '../icons/IconTablerChevronLeft.vue'
 import FilePreviewModal from './FilePreviewModal.vue'
@@ -495,6 +498,9 @@ const FILE_ICON_MAP: Record<string, Component> = {
   '.png': IconPhoto, '.jpg': IconPhoto, '.jpeg': IconPhoto, '.gif': IconPhoto, '.svg': IconPhoto, '.webp': IconPhoto,
   '.pdf': IconFileTypePdf,
   '.zip': IconFileZip, '.tar': IconFileZip, '.gz': IconFileZip, '.7z': IconFileZip, '.rar': IconFileZip,
+  '.docx': IconFileTypeDocx, '.doc': IconFileTypeDocx,
+  '.xlsx': IconFileSpreadsheet, '.xls': IconFileSpreadsheet, '.csv': IconFileSpreadsheet,
+  '.pptx': IconPresentation, '.ppt': IconPresentation,
 }
 
 function entryIcon(entry: FileEntry): Component {
